@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FechaFácil — Login</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .tabs { display: flex; gap: 0; margin-bottom: 22px; border-bottom: 2px solid var(--border); }
+  .tab  { flex: 1; padding: 10px; text-align: center; font-weight: 700; font-size: .9rem; color: var(--text-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab-pane   { display: none; }
+  .tab-pane.active { display: block; }
+</style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-logo">Fecha<span>Fácil</span></div>
+  <div class="auth-box">
+    <div class="tabs">
+      <div class="tab active" data-tab="login">Entrar</div>
+      <div class="tab" data-tab="register">Criar conta</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="tab-pane active" id="tab-login">
+      <p class="auth-sub">Acesse sua conta para gerenciar seus orçamentos.</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="l-email" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="l-pass" placeholder="Sua senha" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-login">Entrar</button>
+      </form>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="tab-pane" id="tab-register">
+      <p class="auth-sub">Crie sua conta gratuita em segundos.</p>
+      <form id="register-form">
+        <div class="form-group">
+          <label>Seu nome completo</label>
+          <input type="text" id="r-name" placeholder="João Silva" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label>Profissão</label>
+          <select id="r-profession" required>
+            <option value="">Selecione...</option>
+            <option>Eletricista</option>
+            <option>Encanador</option>
+            <option>Técnico de Ar-condicionado</option>
+            <option>Pintor</option>
+            <option>Técnico de Informática</option>
+            <option>Marceneiro</option>
+            <option>Serralheiro</option>
+            <option>Pedreiro / Construção</option>
+            <option>Jardineiro</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cidade</label>
+          <input type="text" id="r-city" placeholder="São Paulo" required>
+        </div>
+        <div class="form-group">
+          <label>WhatsApp</label>
+          <input type="tel" id="r-phone" placeholder="(11) 99999-9999" required autocomplete="tel">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="r-email" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="r-pass" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-register">Criar conta grátis</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/api.js"></script>
+<script>
+  // Redirect se já logado
+  if (API.token()) window.location.href = '/dashboard.html';
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab,.tab-pane').forEach(el => el.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Login
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      const data = await API.login({
+        email: document.getElementById('l-email').value,
+        password: document.getElementById('l-pass').value
+      });
+      localStorage.setItem('ff_token', data.token);
+      localStorage.setItem('ff_user', JSON.stringify(data.user));
+      window.location.href = '/dashboard.html';
+    } catch(err) {
+      toast(err.message, 'error');
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  });
+
+  // Register
+  document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-register');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      const data = await API.register({
+        name:       document.getElementById('r-name').value,
+        profession: document.getElementById('r-profession').value,
+        city:       document.getElementById('r-city').value,
+        phone:      document.getElementById('r-phone').value,
+        email:      document.getElementById('r-email').value,
+        password:   document.getElementById('r-pass').value
+      });
+      localStorage.setItem('ff_token', data.token);
+      localStorage.setItem('ff_user', JSON.stringify(data.user));
+      window.location.href = '/dashboard.html';
+    } catch(err) {
+      toast(err.message, 'error');
+      btn.disabled = false; btn.textContent = 'Criar conta grátis';
+    }
+  });
+</script>
+</body>
+</html>
