@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FechaFÃ¡cil â Perfil</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .svc-item { display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--border); }
+  .svc-item:last-child { border-bottom:none; }
+  .svc-info { flex:1; }
+  .svc-name { font-weight:600; font-size:.93rem; }
+  .svc-price { font-size:.82rem; color:var(--text-2); }
+  .svc-del { background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem;padding:4px 8px; }
+  .toggle { width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;transition:background .2s;flex-shrink:0;position:relative; }
+  .toggle::after { content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .2s; }
+  .toggle.on { background:var(--green); }
+  .toggle.on::after { transform:translateX(20px); }
+  .toggle.off { background:var(--border); }
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <button class="nav-back" onclick="window.history.back()">â Voltar</button>
+  <span class="nav-title">Perfil</span>
+  <button class="nav-action" onclick="saveProfile()">Salvar</button>
+</nav>
+
+<div class="content">
+  <div id="profile-wrap">
+    <div style="text-align:center;padding:40px"><span class="spinner" style="border-color:rgba(27,58,107,.3);border-top-color:var(--blue);width:28px;height:28px;border-width:3px;"></span></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="/dashboard.html"><span class="icon">ð </span>InÃ­cio</a>
+  <a href="/quotes.html"><span class="icon">ð</span>OrÃ§amentos</a>
+  <a href="/clients.html"><span class="icon">ð¥</span>Clientes</a>
+  <a href="/profile.html" class="active"><span class="icon">ð¤</span>Perfil</a>
+</nav>
+
+<!-- ADD SERVICE SHEET -->
+<div class="overlay" id="svc-overlay" onclick="closeSvc(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>Novo serviÃ§o</h2>
+    <div class="form-group mt-12"><label>Nome do serviÃ§o *</label><input type="text" id="svc-name" placeholder="Ex: InstalaÃ§Ã£o de tomadas"></div>
+    <div class="form-group"><label>PreÃ§o (R$) *</label><input type="number" id="svc-price" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="form-group"><label>DescriÃ§Ã£o</label><input type="text" id="svc-desc" placeholder="Opcional"></div>
+    <button class="btn btn-primary" onclick="addService()">Adicionar serviÃ§o</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/api.js"></script>
+<script>
+if (!requireAuth()) throw 0;
+let user = null, services = [];
+
+async function load() {
+  [user, services] = await Promise.all([API.me(), API.getServices()]);
+  render();
+}
+
+function render() {
+  const u = user;
+  document.getElementById('profile-wrap').innerHTML = `
+    <div class="text-center mb-16">
+      <div class="profile-avatar">${initials(u.name)}</div>
+      <h2>${u.name}</h2>
+      <p class="text-small">${u.profession} Â· ${u.city}</p>
+      <p class="text-small">${u.email}</p>
+    </div>
+
+    <div class="card mb-12">
+      <h3 style="margin-bottom:14px">Dados do perfil</h3>
+      <div class="form-group"><label>Nome completo</label><input type="text" id="p-name" value="${u.name}"></div>
+      <div class="form-group"><label>ProfissÃ£o</label>
+        <select id="p-profession">
+          ${['Eletricista','Encanador','TÃ©cnico de Ar-condicionado','Pintor','TÃ©cnico de InformÃ¡tica','Marceneiro','Serralheiro','Pedreiro / ConstruÃ§Ã£o','Jardineiro','Outro']
+            .map(opt => `<option ${u.profession===opt?'selected':''}>${opt}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Cidade</label><input type="text" id="p-city" value="${u.city}"></div>
+      <div class="form-group"><label>WhatsApp</label><input type="tel" id="p-phone" value="${u.phone}"></div>
+      <div class="form-group"><label>Bio (aparece no seu mini-site)</label><textarea id="p-bio">${u.bio||''}</textarea></div>
+    </div>
+
+    <div class="card mb-12">
+      <div class="flex items-center justify-between mb-12">
+        <h3>Meus serviÃ§os</h3>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('svc-overlay').classList.add('open')">+ Adicionar</button>
+      </div>
+      <div id="svc-list">
+        ${renderServices()}
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--bg)">
+      <h3 style="margin-bottom:8px">Meu mini-site</h3>
+      <p class="text-small mb-8">Seu perfil pÃºblico â compartilhe com clientes!</p>
+      <div style="background:var(--white);border-radius:8px;padding:10px 14px;word-break:break-all;font-size:.83rem;color:var(--blue);font-weight:600;cursor:pointer" onclick="copySlug()">
+        ${window.location.origin}/${u.slug}
+      </div>
+      <div class="flex gap-8 mt-12">
+        <a href="/${u.slug}" target="_blank" class="btn btn-outline btn-sm" style="flex:1">Ver mini-site</a>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="copySlug()">Copiar link</button>
+      </div>
+    </div>
+
+    <button class="btn btn-danger mt-16" onclick="logout()">Sair da conta</button>
+  `;
+}
+
+function renderServices() {
+  if (!services.length) return '<p class="text-small" style="padding:8px 0">Nenhum serviÃ§o cadastrado.</p>';
+  return services.map(s => `
+    <div class="svc-item">
+      <button class="toggle ${s.active?'on':'off'}" onclick="toggleActive(${s.id},${s.active?0:1})" title="${s.active?'Desativar':'Ativar'}"></button>
+      <div class="svc-info">
+        <div class="svc-name">${s.name}</div>
+        <div class="svc-price">${formatMoney(s.price)}</div>
+      </div>
+      <button class="svc-del" onclick="deleteService(${s.id})" title="Remover">ðï¸</button>
+    </div>`).join('');
+}
+
+async function toggleActive(id, val) {
+  const svc = services.find(s => s.id === id);
+  await API.updateService(id, { ...svc, active: val });
+  svc.active = val;
+  document.getElementById('svc-list').innerHTML = renderServices();
+}
+
+async function deleteService(id) {
+  if (!confirm('Remover este serviÃ§o?')) return;
+  await API.deleteService(id);
+  services = services.filter(s => s.id !== id);
+  document.getElementById('svc-list').innerHTML = renderServices();
+  toast('ServiÃ§o removido', 'success');
+}
+
+async function addService() {
+  const name  = document.getElementById('svc-name').value.trim();
+  const price = parseFloat(document.getElementById('svc-price').value);
+  const desc  = document.getElementById('svc-desc').value.trim();
+  if (!name || isNaN(price)) return toast('Nome e preÃ§o obrigatÃ³rios', 'error');
+  try {
+    const s = await API.createService({ name, price, description: desc });
+    services.push(s);
+    document.getElementById('svc-list').innerHTML = renderServices();
+    ['svc-name','svc-price','svc-desc'].forEach(id => document.getElementById(id).value = '');
+    closeSvc(); toast('ServiÃ§o adicionado!', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function saveProfile() {
+  try {
+    user = await API.updateMe({
+      name:       document.getElementById('p-name').value,
+      profession: document.getElementById('p-profession').value,
+      city:       document.getElementById('p-city').value,
+      phone:      document.getElementById('p-phone').value,
+      bio:        document.getElementById('p-bio').value,
+    });
+    toast('Perfil salvo!', 'success');
+    render();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function copySlug() {
+  const link = `${location.origin}/${user.slug}`;
+  navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success')).catch(() => {
+    const el = document.createElement('input'); el.value = link;
+    document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
+    toast('Link copiado!', 'success');
+  });
+}
+
+function closeSvc(e) {
+  if (!e || e.target === document.getElementById('svc-overlay'))
+    document.getElementById('svc-overlay').classList.remove('open');
+}
+
+load();
+</script>
+</body>
+</html>
