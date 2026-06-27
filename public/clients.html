@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FechaFácil — Clientes</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="top-nav">
+  <span class="nav-title">Clientes</span>
+  <button class="nav-action" onclick="openAdd()">+ Novo</button>
+</nav>
+
+<div class="content">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="Buscar por nome ou telefone...">
+  </div>
+  <div id="list-wrap">
+    <div style="text-align:center;padding:40px"><span class="spinner" style="border-color:rgba(27,58,107,.3);border-top-color:var(--blue);width:28px;height:28px;border-width:3px;"></span></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="/dashboard.html"><span class="icon">🏠</span>Início</a>
+  <a href="/quotes.html"><span class="icon">📋</span>Orçamentos</a>
+  <a href="/clients.html" class="active"><span class="icon">👥</span>Clientes</a>
+  <a href="/profile.html"><span class="icon">👤</span>Perfil</a>
+</nav>
+
+<button class="btn-icon" onclick="openAdd()">+</button>
+
+<!-- ADD SHEET -->
+<div class="overlay" id="add-overlay" onclick="closeAdd(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>Novo cliente</h2>
+    <div class="form-group mt-12"><label>Nome completo *</label><input type="text" id="a-name" placeholder="João Silva"></div>
+    <div class="form-group"><label>WhatsApp *</label><input type="tel" id="a-phone" placeholder="(11) 99999-9999"></div>
+    <div class="form-group"><label>E-mail</label><input type="email" id="a-email" placeholder="joao@email.com"></div>
+    <div class="form-group"><label>Endereço</label><input type="text" id="a-addr" placeholder="Rua, número, bairro"></div>
+    <button class="btn btn-primary" onclick="saveClient()">Salvar cliente</button>
+  </div>
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="sheet" id="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/api.js"></script>
+<script>
+if (!requireAuth()) throw 0;
+let all = [];
+
+async function load() {
+  all = await API.getClients();
+  render('');
+}
+
+function render(q) {
+  const filtered = all.filter(c =>
+    c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q)
+  );
+  if (filtered.length === 0) {
+    document.getElementById('list-wrap').innerHTML = `
+      <div class="empty">
+        <div class="icon">👥</div>
+        <p>${q ? 'Nenhum cliente encontrado.' : 'Nenhum cliente ainda.'}</p>
+        <button class="btn btn-primary" onclick="openAdd()">Adicionar cliente</button>
+      </div>`;
+    return;
+  }
+  document.getElementById('list-wrap').innerHTML = `
+    <div class="card card-list">
+      ${filtered.map(c => `
+        <div class="list-item" onclick="showDetail(${c.id})">
+          <div class="list-item-avatar">${initials(c.name)}</div>
+          <div class="list-item-body">
+            <div class="list-item-name">${c.name}</div>
+            <div class="list-item-sub">${c.phone}${c.quote_count ? ` · ${c.quote_count} orçamento(s)` : ''}</div>
+          </div>
+          <div class="list-item-right">
+            <div class="list-item-date">${c.last_quote ? timeAgo(c.last_quote) : 'Novo'}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+document.getElementById('search').addEventListener('input', e => render(e.target.value));
+
+async function showDetail(id) {
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-content').innerHTML = `<div style="text-align:center;padding:30px"><span class="spinner" style="border-color:rgba(27,58,107,.3);border-top-color:var(--blue);width:26px;height:26px;border-width:3px;"></span></div>`;
+  const c = await API.getClient(id);
+  const whatsLink = `https://wa.me/55${c.phone.replace(/\D/g,'')}`;
+  document.getElementById('detail-content').innerHTML = `
+    <div class="text-center mb-12">
+      <div class="list-item-avatar" style="width:60px;height:60px;font-size:1.4rem;margin:0 auto 10px">${initials(c.name)}</div>
+      <h2>${c.name}</h2>
+      <p class="text-small">${c.phone}${c.email ? ' · '+c.email : ''}</p>
+      ${c.address ? `<p class="text-small">${c.address}</p>` : ''}
+    </div>
+
+    <div class="flex gap-8 mb-12">
+      <a href="${whatsLink}" target="_blank" class="btn btn-primary" style="flex:1">💬 WhatsApp</a>
+      <button class="btn btn-secondary" style="flex:1" onclick="newQuoteFor('${c.name}','${c.phone}',${c.id})">+ Orçamento</button>
+    </div>
+
+    ${c.quotes.length ? `
+      <p style="font-size:.85rem;font-weight:700;color:var(--text-2);margin-bottom:8px">HISTÓRICO</p>
+      <div class="card">
+        ${c.quotes.map(q => `
+          <div class="list-item" onclick="window.location.href='/quotes.html?id=${q.id}'">
+            <div class="list-item-body">
+              <div class="list-item-name">${formatMoney(q.total)}</div>
+              <div class="list-item-sub"><span class="badge badge-${q.status}">${statusLabel(q.status)}</span></div>
+            </div>
+            <div class="list-item-right"><div class="list-item-date">${timeAgo(q.created_at)}</div></div>
+          </div>`).join('')}
+      </div>` : '<p class="text-small text-center" style="padding:16px">Nenhum orçamento ainda.</p>'}
+  `;
+}
+
+function newQuoteFor(name, phone, id) {
+  sessionStorage.setItem('ff_client', JSON.stringify({id, name, phone}));
+  window.location.href = '/quote-new.html';
+}
+
+function openAdd() { document.getElementById('add-overlay').classList.add('open'); }
+function closeAdd(e) { if (!e || e.target===document.getElementById('add-overlay')) document.getElementById('add-overlay').classList.remove('open'); }
+function closeDetail(e) { if (!e || e.target===document.getElementById('detail-overlay')) document.getElementById('detail-overlay').classList.remove('open'); }
+
+async function saveClient() {
+  const name  = document.getElementById('a-name').value.trim();
+  const phone = document.getElementById('a-phone').value.trim();
+  if (!name || !phone) return toast('Nome e WhatsApp obrigatórios', 'error');
+  try {
+    await API.createClient({ name, phone, email: document.getElementById('a-email').value, address: document.getElementById('a-addr').value });
+    toast('Cliente salvo!', 'success');
+    closeAdd();
+    ['a-name','a-phone','a-email','a-addr'].forEach(id => document.getElementById(id).value = '');
+    load();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+load();
+</script>
+</body>
+</html>
