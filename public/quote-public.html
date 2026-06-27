@@ -1,1 +1,107 @@
-
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orcamento - FechaFacil</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1B3A6B;--blue-dark:#0D1F3C;--orange:#F97316;--green:#16A34A;--red:#DC2626;--border:#E5E7EB;--bg:#F8FAFC;--white:#fff;--text-1:#1F2937;--text-2:#4B5563;--text-3:#9CA3AF}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text-1);min-height:100vh;-webkit-font-smoothing:antialiased}
+.header{background:linear-gradient(135deg,var(--blue),var(--blue-dark));padding:28px 20px 20px;color:white;text-align:center}
+.logo{font-size:.9rem;font-weight:800;opacity:.7;margin-bottom:8px}.logo span{color:var(--orange)}
+.client-name{font-size:1.3rem;font-weight:800;margin-bottom:4px}.client-sub{font-size:.85rem;opacity:.75}
+.body{max-width:500px;margin:0 auto;padding:16px}
+.card{background:var(--white);border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:18px;margin-bottom:14px}
+.section-label{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px}
+.item-row{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border)}
+.item-row:last-child{border-bottom:none}
+.item-name{font-weight:600;font-size:.9rem}.item-sub{font-size:.78rem;color:var(--text-2)}
+.item-price{font-weight:800;color:var(--blue);white-space:nowrap;margin-left:12px}
+.total-row{display:flex;justify-content:space-between;padding:12px 0 4px;font-weight:800;font-size:1.1rem}
+.discount-row{display:flex;justify-content:space-between;padding:6px 0;color:var(--green);font-size:.9rem;font-weight:700}
+.info-row{display:flex;justify-content:space-between;font-size:.83rem;color:var(--text-2);margin-bottom:6px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:50px;font-size:.8rem;font-weight:700}
+.badge-sent{background:#EFF6FF;color:#1D4ED8}.badge-approved{background:#F0FDF4;color:var(--green)}
+.badge-declined{background:#FEF2F2;color:var(--red)}.badge-cancelled{background:#F3F4F6;color:var(--text-2)}
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:12px;font-size:.97rem;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;text-decoration:none;transition:all .15s;margin-bottom:10px}
+.btn:active{transform:scale(.97)}.btn:last-child{margin-bottom:0}
+.btn-green{background:var(--green);color:white}.btn-red{background:var(--red);color:white}
+.btn-outline{background:var(--white);color:var(--text-1);border:1.5px solid var(--border)}
+.notes{font-size:.88rem;color:var(--text-2);line-height:1.6}
+.spinner{display:inline-block;width:26px;height:26px;border:3px solid rgba(27,58,107,.15);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1F2937;color:white;padding:10px 20px;border-radius:50px;font-size:.88rem;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1}
+.footer{text-align:center;padding:20px;font-size:.75rem;color:var(--text-3)}
+.footer a{color:var(--orange);text-decoration:none;font-weight:700}
+.approved-banner{background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:14px;text-align:center;margin-bottom:14px}
+.form-group{margin-bottom:12px}.form-group label{display:block;font-size:.8rem;font-weight:700;color:var(--text-2);margin-bottom:5px}
+.form-group input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;font-family:inherit;outline:none}
+.form-group input:focus{border-color:var(--blue)}
+</style>
+</head>
+<body>
+<div id="loading" style="text-align:center;padding:80px 20px">
+  <span class="spinner"></span>
+  <p style="margin-top:14px;font-size:.88rem;color:var(--text-2)">Carregando orcamento...</p>
+</div>
+<div id="app" style="display:none"></div>
+<div id="error" style="display:none;text-align:center;padding:80px 20px">
+  <div style="font-size:3rem;margin-bottom:14px">&#128269;</div>
+  <h2 style="color:var(--text-1);margin-bottom:8px">Orcamento nao encontrado</h2>
+  <p style="color:var(--text-2);font-size:.9rem">O link pode ter expirado ou estar incorreto.</p>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const SUPA_URL='https://rauxfeittdarpsaikynp.supabase.co';
+const SUPA_KEY='sb_publishable_NMSSt7zrrdfm7vappE9V5A_RNe4UHbF';
+function fmt(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDate(d){if(!d)return'';return new Date(d+'T12:00:00').toLocaleDateString('pt-BR');}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),3000);}
+const token=new URLSearchParams(location.search).get('token');
+async function load(){
+  if(!token){showError();return;}
+  try{
+    const res=await fetch(SUPA_URL+'/rest/v1/quotes?token=eq.'+token+'&select=*,quote_items(*)',{headers:{'apikey':SUPA_KEY}});
+    const rows=await res.json();
+    if(!rows?.length){showError();return;}
+    const q=rows[0];q.items=q.quote_items||[];render(q);
+  }catch{showError();}
+}
+function showError(){document.getElementById('loading').style.display='none';document.getElementById('error').style.display='block';}
+function render(q){
+  const statusMap={sent:'Aguardando resposta',approved:'Aprovado',declined:'Recusado',cancelled:'Cancelado'};
+  const pending=q.status==='sent';
+  document.title='Orcamento para '+q.client_name+' - FechaFacil';
+  const itemsHtml=q.items.map(it=>'<div class="item-row"><div><div class="item-name">'+it.description+'</div>'+(it.quantity>1?'<div class="item-sub">'+it.quantity+'x '+fmt(it.unit_price)+'</div>':'')+'</div><div class="item-price">'+fmt(it.total)+'</div></div>').join('');
+  const subtotal=q.items.reduce((s,i)=>s+Number(i.total),0);
+  document.getElementById('app').innerHTML=
+    '<div class="header"><div class="logo">Fecha<span>Facil</span></div><div class="client-name">Orcamento para '+q.client_name+'</div><div class="client-sub">Enviado em '+fmtDate(q.created_at)+'</div></div>'+
+    '<div class="body">'+
+    (q.status==='approved'?'<div class="approved-banner"><div style="font-size:2rem;margin-bottom:6px">&#9989;</div><div style="font-weight:800;color:var(--green)">Orcamento aprovado!</div><div style="font-size:.83rem;color:#166534">Aprovado por '+q.approved_by+' em '+fmtDate(q.approved_at)+'</div></div>':'')+
+    '<div class="card"><div class="section-label">Itens</div>'+itemsHtml+
+    (Number(q.discount)>0?'<div class="discount-row"><span>Desconto</span><span>- '+fmt(q.discount)+'</span></div>':'')+
+    '<div class="total-row"><span>Total</span><span>'+fmt(q.total)+'</span></div></div>'+
+    (q.notes?'<div class="card"><div class="section-label">Observacoes</div><p class="notes">'+q.notes+'</p></div>':'')+
+    '<div class="card"><div class="info-row"><span>Status</span><span class="badge badge-'+q.status+'">'+statusMap[q.status]+'</span></div>'+(q.valid_until?'<div class="info-row"><span>Valido ate</span><span><strong>'+fmtDate(q.valid_until)+'</strong></span></div>':'')+
+    (pending?'<div id="action-card" style="margin-top:12px"><div class="section-label">Sua resposta</div><p style="font-size:.88rem;color:var(--text-2);margin-bottom:14px">Para aprovar, informe seu nome:</p><div class="form-group"><label>Seu nome *</label><input type="text" id="approver-name" placeholder="Ex: Joao Silva"></div><button class="btn btn-green" onclick="approve()">&#9989; Aprovar orcamento</button><button class="btn btn-outline" onclick="decline()" style="color:var(--red);border-color:var(--red)">&#10060; Recusar orcamento</button></div>':'')+'</div>'+
+    '<div class="footer">Orcamento gerado pelo <a href="/" target="_blank">FechaFacil</a></div></div>';
+  document.getElementById('loading').style.display='none';document.getElementById('app').style.display='block';
+}
+async function approve(){
+  const name=document.getElementById('approver-name')?.value.trim();
+  if(!name){toast('Informe seu nome para aprovar');return;}
+  const btn=document.querySelector('.btn-green');btn.disabled=true;btn.textContent='...';
+  try{await fetch(SUPA_URL+'/rest/v1/quotes?token=eq.'+token,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Prefer':'return=minimal'},body:JSON.stringify({status:'approved',approved_by:name,approved_at:new Date().toISOString()})});toast('Orcamento aprovado!');setTimeout(()=>location.reload(),1200);}
+  catch{toast('Erro ao aprovar. Tente novamente.');btn.disabled=false;btn.textContent='&#9989; Aprovar orcamento';}
+}
+async function decline(){
+  if(!confirm('Tem certeza que deseja recusar este orcamento?'))return;
+  try{await fetch(SUPA_URL+'/rest/v1/quotes?token=eq.'+token,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Prefer':'return=minimal'},body:JSON.stringify({status:'declined'})});toast('Orcamento recusado.');setTimeout(()=>location.reload(),1200);}
+  catch{toast('Erro. Tente novamente.');}
+}
+load();
+<\/script>
+</body>
+</html>
