@@ -14,23 +14,19 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  MIDDLEWARE DE AUTH
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- MIDDLEWARE DE AUTH ---
 function auth(req, res, next) {
   const header = req.headers.authorization;
-  if (!header) return res.status(401).json({ error: 'NÃ£o autorizado' });
+  if (!header) return res.status(401).json({ error: 'Nao autorizado' });
   try {
     req.user = jwt.verify(header.replace('Bearer ', ''), JWT_SECRET);
     next();
   } catch {
-    res.status(401).json({ error: 'Token invÃ¡lido' });
+    res.status(401).json({ error: 'Token invalido' });
   }
 }
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  AUTH
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- AUTH ---
 
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -39,11 +35,11 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Preencha todos os campos' });
 
     const existing = await db.users.findOne({ email });
-    if (existing) return res.status(400).json({ error: 'E-mail jÃ¡ cadastrado' });
+    if (existing) return res.status(400).json({ error: 'E-mail ja cadastrado' });
 
     const password_hash = await bcrypt.hash(password, 10);
     const slug = name.toLowerCase()
-      .normalize('NFD').replace(/[Ì-Í¯]/g, '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
       + '-' + Math.random().toString(36).slice(2, 6);
 
@@ -52,7 +48,7 @@ app.post('/api/auth/register', async (req, res) => {
       created_at: new Date().toISOString()
     });
 
-    // ServiÃ§os padrÃ£o
+    // Servicos padrao
     const defaults = getDefaultServices(profession);
     for (let i = 0; i < defaults.length; i++) {
       await db.services.insert({ user_id: user._id, name: defaults[i].name, price: defaults[i].price, description: '', active: true, sort_order: i });
@@ -85,7 +81,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/me', auth, async (req, res) => {
   const user = await db.users.findOne({ _id: req.user.id });
-  if (!user) return res.status(404).json({ error: 'UsuÃ¡rio nÃ£o encontrado' });
+  if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
   const { password_hash, ...safe } = user;
   res.json({ ...safe, id: user._id });
 });
@@ -100,9 +96,7 @@ app.put('/api/me', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  SERVIÃOS
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- SERVICOS ---
 
 app.get('/api/services', auth, async (req, res) => {
   const rows = await db.services.find({ user_id: req.user.id }).sort({ sort_order: 1, name: 1 });
@@ -112,7 +106,7 @@ app.get('/api/services', auth, async (req, res) => {
 app.post('/api/services', auth, async (req, res) => {
   try {
     const { name, description, price } = req.body;
-    if (!name || price == null) return res.status(400).json({ error: 'Nome e preÃ§o obrigatÃ³rios' });
+    if (!name || price == null) return res.status(400).json({ error: 'Nome e preco obrigatorios' });
     const s = await db.services.insert({ user_id: req.user.id, name, description: description || '', price: Number(price), active: true, sort_order: 99 });
     res.json({ ...s, id: s._id });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -131,19 +125,16 @@ app.delete('/api/services/:id', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  CLIENTES
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- CLIENTES ---
 
 app.get('/api/clients', auth, async (req, res) => {
   const clients = await db.clients.find({ user_id: req.user.id }).sort({ name: 1 });
-  // Enriquecer com contagem de orÃ§amentos
   const enriched = await Promise.all(clients.map(async c => {
     const quotes = await db.quotes.find({ client_id: c._id }).sort({ created_at: -1 });
     return {
       ...c, id: c._id,
       quote_count: quotes.length,
-      last_quote: quotes[0]?.created_at || null
+      last_quote: quotes[0] ? quotes[0].created_at : null
     };
   }));
   res.json(enriched);
@@ -152,7 +143,7 @@ app.get('/api/clients', auth, async (req, res) => {
 app.post('/api/clients', auth, async (req, res) => {
   try {
     const { name, phone, email, address, notes } = req.body;
-    if (!name || !phone) return res.status(400).json({ error: 'Nome e telefone obrigatÃ³rios' });
+    if (!name || !phone) return res.status(400).json({ error: 'Nome e telefone obrigatorios' });
     const c = await db.clients.insert({ user_id: req.user.id, name, phone, email: email || '', address: address || '', notes: notes || '', created_at: new Date().toISOString() });
     res.json({ ...c, id: c._id });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -160,7 +151,7 @@ app.post('/api/clients', auth, async (req, res) => {
 
 app.get('/api/clients/:id', auth, async (req, res) => {
   const client = await db.clients.findOne({ _id: req.params.id, user_id: req.user.id });
-  if (!client) return res.status(404).json({ error: 'Cliente nÃ£o encontrado' });
+  if (!client) return res.status(404).json({ error: 'Cliente nao encontrado' });
   const quotes = await db.quotes.find({ client_id: client._id }).sort({ created_at: -1 });
   res.json({ ...client, id: client._id, quotes: quotes.map(q => ({ ...q, id: q._id })) });
 });
@@ -173,9 +164,7 @@ app.put('/api/clients/:id', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  ORÃAMENTOS
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- ORCAMENTOS ---
 
 app.get('/api/quotes', auth, async (req, res) => {
   const quotes = await db.quotes.find({ user_id: req.user.id }).sort({ created_at: -1 });
@@ -192,13 +181,13 @@ app.post('/api/quotes', auth, async (req, res) => {
     const notes       = req.body.notes || '';
     const validUntil  = req.body.validUntil  || req.body.valid_until;
 
-    if (!items || items.length === 0) return res.status(400).json({ error: 'Adicione pelo menos um serviÃ§o' });
-    if (!clientName) return res.status(400).json({ error: 'Cliente obrigatÃ³rio' });
+    if (!items || items.length === 0) return res.status(400).json({ error: 'Adicione pelo menos um servico' });
+    if (!clientName) return res.status(400).json({ error: 'Cliente obrigatorio' });
 
     // Items can be {name, price} (new) or {description, quantity, unit_price} (legacy)
     const normalizedItems = items.map(it => ({
-      name:       it.name || it.description || '',
-      price:      Number(it.price != null ? it.price : (it.unit_price * (it.quantity || 1))) || 0,
+      name:        it.name || it.description || '',
+      price:       Number(it.price != null ? it.price : (it.unit_price * (it.quantity || 1))) || 0,
       description: it.description && it.name ? it.description : ''
     }));
 
@@ -209,19 +198,18 @@ app.post('/api/quotes', auth, async (req, res) => {
     const token = uuidv4().replace(/-/g, '').slice(0, 12);
 
     const quote = await db.quotes.insert({
-      user_id:     req.user.id,
-      client_id:   clientId || null,
-      client_name: clientName,
+      user_id:      req.user.id,
+      client_id:    clientId || null,
+      client_name:  clientName,
       client_phone: clientPhone || '',
       token,
-      status:      'sent',
+      status:       'sent',
       total,
       notes,
-      valid_until: validUntil || new Date(Date.now() + 7*864e5).toISOString().split('T')[0],
-      created_at:  new Date().toISOString()
+      valid_until:  validUntil || new Date(Date.now() + 7*864e5).toISOString().split('T')[0],
+      created_at:   new Date().toISOString()
     });
 
-    // Inserir itens
     for (const it of normalizedItems) {
       await db.quote_items.insert({
         quote_id:    quote._id,
@@ -237,7 +225,7 @@ app.post('/api/quotes', auth, async (req, res) => {
 
 app.get('/api/quotes/:id', auth, async (req, res) => {
   const quote = await db.quotes.findOne({ _id: req.params.id, user_id: req.user.id });
-  if (!quote) return res.status(404).json({ error: 'OrÃ§amento nÃ£o encontrado' });
+  if (!quote) return res.status(404).json({ error: 'Orcamento nao encontrado' });
   const items = await db.quote_items.find({ quote_id: quote._id });
   res.json({ ...quote, id: quote._id, items: items.map(i => ({ ...i, id: i._id })) });
 });
@@ -247,16 +235,13 @@ app.put('/api/quotes/:id/cancel', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  ORÃAMENTO PÃBLICO (sem auth)
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- ORCAMENTO PUBLICO (sem auth) ---
 
 app.get('/api/q/:token', async (req, res) => {
   try {
     const quote = await db.quotes.findOne({ token: req.params.token });
-    if (!quote) return res.status(404).json({ error: 'OrÃ§amento nÃ£o encontrado' });
+    if (!quote) return res.status(404).json({ error: 'Orcamento nao encontrado' });
 
-    // Checar expiraÃ§Ã£o
     if (quote.valid_until && new Date(quote.valid_until) < new Date() && quote.status === 'sent') {
       await db.quotes.update({ _id: quote._id }, { $set: { status: 'expired' } });
       quote.status = 'expired';
@@ -276,13 +261,13 @@ app.get('/api/q/:token', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// New unified endpoint: POST /api/q/:token with { action: 'accepted'|'rejected' }
+// POST /api/q/:token with { action: 'accepted'|'rejected' }
 app.post('/api/q/:token', async (req, res) => {
   try {
     const { action } = req.body;
     const quote = await db.quotes.findOne({ token: req.params.token });
-    if (!quote) return res.status(404).json({ error: 'OrÃ§amento nÃ£o encontrado' });
-    if (quote.status !== 'sent') return res.status(400).json({ error: 'Este orÃ§amento nÃ£o pode ser alterado' });
+    if (!quote) return res.status(404).json({ error: 'Orcamento nao encontrado' });
+    if (quote.status !== 'sent') return res.status(400).json({ error: 'Orcamento nao pode ser alterado' });
 
     const newStatus = action === 'accepted' ? 'accepted' : 'rejected';
     await db.quotes.update({ token: req.params.token }, { $set: { status: newStatus, responded_at: new Date().toISOString() } });
@@ -290,11 +275,11 @@ app.post('/api/q/:token', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Legacy endpoints (kept for backward compatibility)
+// Legacy endpoints
 app.post('/api/q/:token/approve', async (req, res) => {
   try {
     const quote = await db.quotes.findOne({ token: req.params.token });
-    if (!quote) return res.status(404).json({ error: 'OrÃ§amento nÃ£o encontrado' });
+    if (!quote) return res.status(404).json({ error: 'Nao encontrado' });
     await db.quotes.update({ token: req.params.token }, { $set: { status: 'accepted', responded_at: new Date().toISOString() } });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -303,33 +288,31 @@ app.post('/api/q/:token/approve', async (req, res) => {
 app.post('/api/q/:token/decline', async (req, res) => {
   try {
     const quote = await db.quotes.findOne({ token: req.params.token });
-    if (!quote) return res.status(404).json({ error: 'NÃ£o encontrado' });
+    if (!quote) return res.status(404).json({ error: 'Nao encontrado' });
     await db.quotes.update({ token: req.params.token }, { $set: { status: 'rejected', responded_at: new Date().toISOString() } });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  DASHBOARD
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- DASHBOARD ---
 
 app.get('/api/dashboard', auth, async (req, res) => {
   try {
     const uid   = req.user.id;
-    const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const month = new Date().toISOString().slice(0, 7);
 
     const allQuotes   = await db.quotes.find({ user_id: uid });
-    const monthQuotes = allQuotes.filter(q => q.created_at?.startsWith(month));
-    const approved    = monthQuotes.filter(q => q.status === 'approved');
+    const monthQuotes = allQuotes.filter(q => q.created_at && q.created_at.startsWith(month));
+    const accepted    = monthQuotes.filter(q => q.status === 'accepted');
     const pending     = allQuotes.filter(q => q.status === 'sent');
     const clients     = await db.clients.find({ user_id: uid });
     const recent      = allQuotes.sort((a, b) => b.created_at > a.created_at ? 1 : -1).slice(0, 5);
 
     res.json({
       month_quotes:   monthQuotes.length,
-      month_approved: approved.length,
-      month_revenue:  approved.reduce((s, q) => s + q.total, 0),
-      conversion:     monthQuotes.length > 0 ? Math.round((approved.length / monthQuotes.length) * 100) : 0,
+      month_approved: accepted.length,
+      month_revenue:  accepted.reduce((s, q) => s + q.total, 0),
+      conversion:     monthQuotes.length > 0 ? Math.round((accepted.length / monthQuotes.length) * 100) : 0,
       pending_quotes: pending.length,
       total_clients:  clients.length,
       recent_quotes:  recent.map(q => ({ ...q, id: q._id }))
@@ -337,23 +320,19 @@ app.get('/api/dashboard', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  MINI-SITE DO PROFISSIONAL
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- MINISITE DO PROFISSIONAL ---
 
 app.get('/api/minisite/:slug', async (req, res) => {
   try {
     const user = await db.users.findOne({ slug: req.params.slug });
-    if (!user) return res.status(404).json({ error: 'Profissional nÃ£o encontrado' });
+    if (!user) return res.status(404).json({ error: 'Profissional nao encontrado' });
     const services = await db.services.find({ user_id: user._id }).sort({ sort_order: 1 });
     const { password_hash, ...safe } = user;
     res.json({ user: { ...safe, id: user._id }, services: services.map(s => ({ ...s, id: s._id })) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  ROTAS DO FRONTEND
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- ROTAS DO FRONTEND ---
 
 app.get('/q/:token',  (_req, res) => res.sendFile(path.join(__dirname, 'public', 'quote-public.html')));
 app.get('/:slug',     (req,  res) => {
@@ -364,65 +343,57 @@ app.get('/:slug',     (req,  res) => {
 });
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  START
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- START ---
 
 app.listen(PORT, () => {
-  console.log(`ð FechaFÃ¡cil rodando em http://localhost:${PORT}`);
-  console.log(`   Banco de dados: ./data/`);
+  console.log('FechaFacil rodando em http://localhost:' + PORT);
+  console.log('Banco de dados: ./data/');
 });
 
-// âââââââââââââââââââââââââââââââââââââââââ
-//  HELPERS
-// âââââââââââââââââââââââââââââââââââââââââ
+// --- HELPERS ---
 
 function getDefaultServices(profession) {
   const map = {
     'Eletricista': [
-      { name: 'InstalaÃ§Ã£o de tomadas (un.)', price: 60 },
+      { name: 'Instalacao de tomadas (un.)', price: 60 },
       { name: 'Troca de disjuntor', price: 80 },
-      { name: 'InstalaÃ§Ã£o de interruptores', price: 50 },
-      { name: 'InstalaÃ§Ã£o de lustres / luminÃ¡rias', price: 90 },
-      { name: 'Passagem de fiaÃ§Ã£o (m)', price: 25 },
-      { name: 'Quadro de distribuiÃ§Ã£o', price: 200 },
-      { name: 'MÃ£o de obra', price: 100 },
+      { name: 'Instalacao de interruptores', price: 50 },
+      { name: 'Instalacao de lustres / luminarias', price: 90 },
+      { name: 'Passagem de fiacao (m)', price: 25 },
+      { name: 'Quadro de distribuicao', price: 200 },
+      { name: 'Mao de obra', price: 100 },
     ],
     'Encanador': [
       { name: 'Desentupimento de pia', price: 150 },
       { name: 'Troca de torneira', price: 80 },
-      { name: 'Conserto de vaso sanitÃ¡rio', price: 100 },
-      { name: 'InstalaÃ§Ã£o de chuveiro', price: 120 },
-      { name: 'Vazamento em tubulaÃ§Ã£o', price: 180 },
-      { name: 'MÃ£o de obra', price: 100 },
+      { name: 'Conserto de vaso sanitario', price: 100 },
+      { name: 'Instalacao de chuveiro', price: 120 },
+      { name: 'Vazamento em tubulacao', price: 180 },
+      { name: 'Mao de obra', price: 100 },
+    ],
+    'Tecnico de Ar-condicionado': [
+      { name: 'Limpeza de split (un.)', price: 150 },
+      { name: 'Instalacao de ar-condicionado', price: 350 },
+      { name: 'Recarga de gas', price: 200 },
+      { name: 'Manutencao preventiva', price: 120 },
     ],
     'Pintor': [
-      { name: 'Pintura interna (m2)', price: 15 },
-      { name: 'Pintura externa (m2)', price: 20 },
-      { name: 'Lijamento e massa (m2)', price: 12 },
-      { name: 'Tinta (galao) - fornecedo', price: 70 },
-      { name: 'Pintura de madeira / metal', price: 250 },
-      { name: 'M obra', price: 100 },
+      { name: 'Pintura (m2)', price: 15 },
+      { name: 'Massa corrida (m2)', price: 12 },
+      { name: 'Pintura de fachada (m2)', price: 20 },
+      { name: 'Mao de obra diaria', price: 250 },
     ],
-    'Pedreiro': [
-      { name: 'Assentamento de azlejos (m2)', price: 50 },
-      { name: 'Contrapiso (m2)', price: 30 },
-      { name: 'Reboco (m2)', price: 25 },
-      { name: 'DemoliÃ§Ã£o', price: 200 },
-      { name: 'Chapa de gesso (m2)', price: 60 },
-      { name: 'MÃ£o de obra', price: 100 },
-    ],
-    'MÃªcanico': [
-      { name: 'RevisÃ£o'ulho', price: 200 },
-      { name: 'Troca de oleo', price: 150 },
-      { name: 'Alinhamento e balanceamento', price: 120 },
-      { name: 'Troca de pastilhas', price: 250 },
-      { name: 'ServiåÃ§o de ar condicionado', price: 180 },
-      { name: 'MÃ£o de obra', price: 100 },
+    'Tecnico de Informatica': [
+      { name: 'Formatacao de computador', price: 120 },
+      { name: 'Limpeza e manutencao', price: 80 },
+      { name: 'Instalacao de programas', price: 60 },
+      { name: 'Configuracao de rede Wi-Fi', price: 100 },
+      { name: 'Remocao de virus', price: 90 },
     ],
   };
   return map[profession] || [
-    { name: 'ServiåÃ§o padrÃ£o', price: 100 },
-    { name: 'MÃ£o de obra', price: 100 },
+    { name: 'Servico avulso', price: 100 },
+    { name: 'Mao de obra', price: 100 },
+    { name: 'Consultoria', price: 150 },
   ];
 }
