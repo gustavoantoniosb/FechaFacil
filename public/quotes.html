@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FechaFácil — Orçamentos</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .filter-tabs { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px; scrollbar-width:none; }
+  .filter-tabs::-webkit-scrollbar { display:none; }
+  .filter-tab  { flex-shrink:0; padding:6px 16px; border-radius:50px; font-size:.82rem; font-weight:700; cursor:pointer; border:1.5px solid var(--border); background:var(--white); color:var(--text-2); transition:all .15s; }
+  .filter-tab.active { background:var(--blue); color:var(--white); border-color:var(--blue); }
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <span class="nav-title">Orçamentos</span>
+  <button class="nav-action" onclick="window.location.href='/quote-new.html'">+ Novo</button>
+</nav>
+
+<div class="content">
+  <div class="filter-tabs">
+    <div class="filter-tab active" data-f="all">Todos</div>
+    <div class="filter-tab" data-f="sent">Pendentes</div>
+    <div class="filter-tab" data-f="approved">Aprovados</div>
+    <div class="filter-tab" data-f="declined">Recusados</div>
+    <div class="filter-tab" data-f="expired">Expirados</div>
+  </div>
+
+  <div id="list-wrap">
+    <div style="text-align:center;padding:40px"><span class="spinner" style="border-color:rgba(27,58,107,.3);border-top-color:var(--blue);width:28px;height:28px;border-width:3px;"></span></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="/dashboard.html"><span class="icon">🏠</span>Início</a>
+  <a href="/quotes.html" class="active"><span class="icon">📋</span>Orçamentos</a>
+  <a href="/clients.html"><span class="icon">👥</span>Clientes</a>
+  <a href="/profile.html"><span class="icon">👤</span>Perfil</a>
+</nav>
+
+<button class="btn-icon" onclick="window.location.href='/quote-new.html'">+</button>
+
+<!-- DETAIL SHEET -->
+<div class="overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="sheet" id="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/api.js"></script>
+<script>
+if (!requireAuth()) throw 0;
+
+let all = [];
+let current = '';
+
+const params = new URLSearchParams(location.search);
+if (params.get('filter')) current = params.get('filter');
+if (params.get('id')) openById(parseInt(params.get('id')));
+
+async function load() {
+  all = await API.getQuotes();
+  render();
+  // auto-open por ?id
+  const idParam = params.get('id');
+  if (idParam) { const q = all.find(x => x.id == idParam); if (q) showDetail(q.id); }
+}
+
+function render() {
+  const filtered = current === 'all' || !current ? all : all.filter(q => q.status === current);
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.f === (current||'all')));
+
+  if (filtered.length === 0) {
+    document.getElementById('list-wrap').innerHTML = `
+      <div class="empty">
+        <div class="icon">📋</div>
+        <p>Nenhum orçamento encontrado.</p>
+        <button class="btn btn-primary" onclick="window.location.href='/quote-new.html'">Criar orçamento</button>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('list-wrap').innerHTML = `
+    <div class="card card-list">
+      ${filtered.map(q => `
+        <div class="list-item" onclick="showDetail(${q.id})">
+          <div class="list-item-avatar">${initials(q.client_name)}</div>
+          <div class="list-item-body">
+            <div class="list-item-name">${q.client_name}</div>
+            <div class="list-item-sub"><span class="badge badge-${q.status}">${statusLabel(q.status)}</span> · ${timeAgo(q.created_at)}</div>
+          </div>
+          <div class="list-item-right">
+            <div class="list-item-value">${formatMoney(q.total)}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+document.querySelectorAll('.filter-tab').forEach(t => {
+  t.addEventListener('click', () => { current = t.dataset.f === 'all' ? '' : t.dataset.f; render(); });
+});
+
+async function showDetail(id) {
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-content').innerHTML = `<div style="text-align:center;padding:30px"><span class="spinner" style="border-color:rgba(27,58,107,.3);border-top-color:var(--blue);width:26px;height:26px;border-width:3px;"></span></div>`;
+  try {
+    const q = await API.getQuote(id);
+    const whatsLink = `https://wa.me/55${q.client_phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Olá ${q.client_name}! Segue o link do seu orçamento 👇\n\n${location.origin}/q/${q.token}\n\nQualquer dúvida estou à disposição!`)}`;
+    const publicLink = `${location.origin}/q/${q.token}`;
+
+    document.getElementById('detail-content').innerHTML = `
+      <div class="flex items-center justify-between mb-12">
+        <div>
+          <h2>${q.client_name}</h2>
+          <div class="text-small">${q.client_phone}</div>
+        </div>
+        <span class="badge badge-${q.status}">${statusLabel(q.status)}</span>
+      </div>
+
+      ${q.approved_at ? `<div class="card" style="background:#F0FDF4;border:1.5px solid #86EFAC;margin-bottom:12px">
+        <div style="color:var(--green);font-weight:700">✅ Aprovado por ${q.approved_by}</div>
+        <div class="text-small" style="color:#166534">${formatDate(q.approved_at)}</div>
+      </div>` : ''}
+
+      <div class="card mb-12">
+        ${q.items.map(it => `
+          <div class="flex justify-between" style="padding:7px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-weight:600;font-size:.9rem">${it.description}</div>
+              ${it.quantity > 1 ? `<div class="text-small">${it.quantity}x ${formatMoney(it.unit_price)}</div>` : ''}
+            </div>
+            <div class="text-money">${formatMoney(it.total)}</div>
+          </div>`).join('')}
+        ${q.discount > 0 ? `<div class="flex justify-between" style="padding:7px 0;border-bottom:1px solid var(--border)">
+          <div style="color:var(--green);font-weight:600">Desconto</div>
+          <div style="color:var(--green);font-weight:700">- ${formatMoney(q.discount)}</div>
+        </div>` : ''}
+        <div class="flex justify-between" style="padding:10px 0 2px;font-weight:800;font-size:1.05rem">
+          <div>Total</div>
+          <div class="text-money">${formatMoney(q.total)}</div>
+        </div>
+      </div>
+
+      ${q.notes ? `<div class="card mb-12" style="background:var(--bg)"><div class="text-small" style="font-weight:700;margin-bottom:4px">OBSERVAÇÕES</div><div style="font-size:.9rem">${q.notes}</div></div>` : ''}
+
+      <div class="text-small mb-12">Válido até: <strong>${formatDate(q.valid_until)}</strong> · Criado em ${formatDate(q.created_at)}</div>
+
+      <div class="flex flex-col gap-8">
+        ${q.status === 'sent' ? `
+          <a href="${whatsLink}" target="_blank" class="btn btn-primary">💬 Enviar pelo WhatsApp</a>
+          <button class="btn btn-ghost" onclick="copyLink('${publicLink}')">🔗 Copiar link do orçamento</button>
+          <button class="btn btn-danger btn-sm" onclick="cancelQ(${q.id})" style="margin-top:4px">Cancelar orçamento</button>
+        ` : `
+          <button class="btn btn-ghost" onclick="copyLink('${publicLink}')">🔗 Ver orçamento</button>
+        `}
+      </div>
+    `;
+  } catch(e) { toast(e.message, 'error'); closeDetail(); }
+}
+
+async function cancelQ(id) {
+  if (!confirm('Cancelar este orçamento?')) return;
+  await API.cancelQuote(id);
+  toast('Orçamento cancelado', 'success');
+  closeDetail();
+  load();
+}
+
+function copyLink(link) {
+  navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success')).catch(() => {
+    const el = document.createElement('input'); el.value = link; document.body.appendChild(el);
+    el.select(); document.execCommand('copy'); el.remove(); toast('Link copiado!', 'success');
+  });
+}
+
+function closeDetail(e) {
+  if (!e || e.target === document.getElementById('detail-overlay'))
+    document.getElementById('detail-overlay').classList.remove('open');
+}
+
+load();
+</script>
+</body>
+</html>
