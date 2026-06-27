@@ -1,1 +1,104 @@
-
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FechaFacil - Novo Orcamento</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .item-row{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .item-row:last-child{border-bottom:none}
+  .item-desc{flex:2}.item-qty{flex:0 0 60px}.item-price{flex:1}
+  .item-total{flex:1;text-align:right;font-weight:700;color:var(--blue);font-size:.88rem;padding-top:30px}
+  .item-del{flex:0 0 32px;padding-top:26px}
+  .item-del button{background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem}
+  .item-row input{width:100%}
+  .total-box{background:var(--blue);color:white;border-radius:12px;padding:16px 20px;text-align:center;margin:16px 0}
+  .total-box .t-label{font-size:.82rem;opacity:.75;margin-bottom:4px}
+  .total-box .t-value{font-size:1.8rem;font-weight:900}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <button class="nav-back" onclick="window.history.back()">← Voltar</button>
+  <span class="nav-title">Novo Orcamento</span>
+  <button class="nav-action" onclick="submit()">Criar</button>
+</nav>
+<div class="content">
+  <div class="card mb-12">
+    <h3 style="margin-bottom:14px">Cliente</h3>
+    <div class="form-group"><label>Nome completo *</label><input type="text" id="c-name" placeholder="Joao Silva"></div>
+    <div class="form-group"><label>WhatsApp *</label><input type="tel" id="c-phone" placeholder="(11) 99999-9999"></div>
+    <div class="form-group"><label>E-mail</label><input type="email" id="c-email" placeholder="joao@email.com"></div>
+  </div>
+  <div class="card mb-12">
+    <div class="flex items-center justify-between mb-12">
+      <h3>Itens do orcamento</h3>
+      <button class="btn btn-primary btn-sm" onclick="addItem()">+ Adicionar</button>
+    </div>
+    <div id="items-wrap"></div>
+    <div class="total-box"><div class="t-label">Total do orcamento</div><div class="t-value" id="total-display">R$ 0,00</div></div>
+  </div>
+  <div class="card mb-12">
+    <h3 style="margin-bottom:14px">Detalhes</h3>
+    <div class="form-group"><label>Desconto (R$)</label><input type="number" id="discount" placeholder="0.00" min="0" step="0.01" oninput="calcTotal()"></div>
+    <div class="form-group"><label>Validade do orcamento</label><input type="date" id="valid-until"></div>
+    <div class="form-group"><label>Observacoes</label><textarea id="notes" placeholder="Condicoes, prazo de execucao, materiais inclusos..."></textarea></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="/js/api.js"><\/script>
+<script>
+if(!requireAuth())throw 0;
+let items=[],nextId=0;
+const prefill=JSON.parse(sessionStorage.getItem('ff_client')||'null');
+if(prefill){document.getElementById('c-name').value=prefill.name||'';document.getElementById('c-phone').value=prefill.phone||'';sessionStorage.removeItem('ff_client');}
+const dv=new Date();dv.setDate(dv.getDate()+30);document.getElementById('valid-until').value=dv.toISOString().slice(0,10);
+addItem();
+function addItem(){
+  const id=nextId++;items.push(id);
+  const wrap=document.getElementById('items-wrap');
+  const div=document.createElement('div');div.className='item-row';div.id='item-'+id;
+  div.innerHTML='<div class="item-desc"><label style="font-size:.75rem;color:var(--text-2);font-weight:600">Descricao *</label><input type="text" id="id-desc-'+id+'" placeholder="Ex: Instalacao eletrica" oninput="calcTotal()"></div><div class="item-qty"><label style="font-size:.75rem;color:var(--text-2);font-weight:600">Qtd</label><input type="number" id="id-qty-'+id+'" value="1" min="1" step="1" oninput="calcTotal()"></div><div class="item-price"><label style="font-size:.75rem;color:var(--text-2);font-weight:600">Preco *</label><input type="number" id="id-price-'+id+'" placeholder="0.00" min="0" step="0.01" oninput="calcTotal()"></div><div class="item-total" id="id-total-'+id+'">—</div><div class="item-del"><button onclick="removeItem('+id+')" title="Remover">&#128465;&#65039;</button></div>';
+  wrap.appendChild(div);calcTotal();
+}
+function removeItem(id){
+  if(items.length<=1){toast('Pelo menos um item obrigatorio','error');return;}
+  items=items.filter(i=>i!==id);document.getElementById('item-'+id).remove();calcTotal();
+}
+function calcTotal(){
+  let subtotal=0;
+  for(const id of items){
+    const qty=parseFloat(document.getElementById('id-qty-'+id)?.value)||0;
+    const price=parseFloat(document.getElementById('id-price-'+id)?.value)||0;
+    const t=qty*price;
+    const el=document.getElementById('id-total-'+id);
+    if(el)el.textContent=t>0?formatMoney(t):'—';
+    subtotal+=t;
+  }
+  const discount=parseFloat(document.getElementById('discount').value)||0;
+  document.getElementById('total-display').textContent=formatMoney(Math.max(0,subtotal-discount));
+}
+async function submit(){
+  const client_name=document.getElementById('c-name').value.trim();
+  const client_phone=document.getElementById('c-phone').value.trim();
+  const client_email=document.getElementById('c-email').value.trim();
+  if(!client_name||!client_phone)return toast('Nome e WhatsApp do cliente sao obrigatorios','error');
+  const quoteItems=[];
+  for(const id of items){
+    const description=document.getElementById('id-desc-'+id)?.value.trim();
+    const quantity=parseFloat(document.getElementById('id-qty-'+id)?.value)||1;
+    const unit_price=parseFloat(document.getElementById('id-price-'+id)?.value);
+    if(!description||isNaN(unit_price)||unit_price<0)return toast('Preencha descricao e preco de todos os itens','error');
+    quoteItems.push({description,quantity,unit_price});
+  }
+  const btn=document.querySelector('.nav-action');btn.disabled=true;btn.textContent='...';
+  try{
+    await API.createQuote({client_name,client_phone,client_email,items:quoteItems,notes:document.getElementById('notes').value,valid_until:document.getElementById('valid-until').value||null,discount:parseFloat(document.getElementById('discount').value)||0});
+    toast('Orcamento criado!','success');
+    setTimeout(()=>window.location.href='/quotes.html',800);
+  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Criar';}
+}
+<\/script>
+</body>
+</html>
