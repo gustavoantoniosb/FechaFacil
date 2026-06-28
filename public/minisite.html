@@ -41,6 +41,78 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
   <h2>Profissional nao encontrado</h2>
 </div>
 <script>
+function fmt(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function initials(n){return(n||'?').trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+const slug=new URLSearchParams(location.search).get('slug');
+async function load(){
+  if(!slug){showError();return;}
+  try{
+    const SUPA='https://rauxfeittdarpsaikynp.supabase.co/rest/v1';
+    const h={'apikey':'sb_publishable_NMSSt7zrrdfm7vappE9V5A_RNe4UHbF','Accept':'application/json'};
+    const profiles=await fetch(SUPA+'/profiles?slug=eq.'+slug+'&select=*',{headers:h}).then(r=>r.json());
+    if(!profiles||!profiles.length){showError();return;}
+    const u=profiles[0];
+    const services=await fetch(SUPA+'/services?user_id=eq.'+u.id+'&active=eq.true&select=*&order=name.asc',{headers:h}).then(r=>r.json());
+    render({user:u,services:services||[]});
+  }catch(e){showError();}
+}
+function showError(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('error').style.display='block';
+}
+function render({user:u,services}){
+  document.title=u.name+' | FechaFacil';
+  const phone=(u.phone||'').replace(/\D/g,'');
+  const whatsLink=phone?'https://wa.me/55'+phone+'?text='+encodeURIComponent('Ola '+u.name+'! Vi seu perfil no FechaFacil e gostaria de um orcamento.'):'#';
+  const svcs=(services||[]);
+  document.getElementById('app').innerHTML='<div class="header"><div class="avatar">'+initials(u.name)+'</div><div class="name">'+u.name+'</div><div class="sub">'+(u.profession||'')+((u.profession&&u.city)?' · ':''+(u.city||''))+'</div></div><div class="body">'+(u.bio?'<div class="card"><div class="card-title">Sobre</div><p class="bio-text">'+u.bio+'</p></div>':'')+(svcs.length?'<div class="card"><div class="card-title">Servicos</div>'+svcs.map(s=>'<div class="svc-item"><span class="svc-name">'+s.name+'</span><span class="svc-price">a partir de '+fmt(s.price)+'</span></div>').join('')+'</div>':'')+(phone?'<div class="card"><div class="card-title">Solicitar orcamento</div><a href="'+whatsLink+'" target="_blank" class="btn btn-whats">Chamar no WhatsApp</a></div>':'')+'</div><div class="footer">Perfil criado com <a href="/" target="_blank">FechaFacil</a></div>';
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='block';
+}
+load();
+</script>E html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profissional - FechaFacil</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1B3A6B;--orange:#F97316;--green:#16A34A;--gray-1:#1E293B;--gray-2:#64748B;--gray-3:#94A3B8;--border:#E2E8F0;--white:#fff;--bg:#F1F5F9}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--gray-1);min-height:100vh;-webkit-font-smoothing:antialiased}
+.header{background:linear-gradient(135deg,var(--blue),#102B52);padding:36px 20px 28px;text-align:center;color:white}
+.avatar{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.15);border:3px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:white;margin:0 auto 14px}
+.name{font-size:1.25rem;font-weight:800}.sub{font-size:.88rem;opacity:.8;margin-top:6px}
+.body{max-width:480px;margin:0 auto;padding:20px}
+.card{background:var(--white);border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);padding:20px;margin-bottom:14px}
+.card-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-3);margin-bottom:12px}
+.svc-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.svc-item:last-child{border-bottom:none}.svc-name{font-weight:600;font-size:.9rem}
+.svc-price{font-weight:800;color:var(--blue);font-size:.9rem;white-space:nowrap;margin-left:12px}
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:12px;font-size:1rem;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;text-decoration:none;margin-bottom:10px;transition:all .15s}
+.btn:active{transform:scale(.97)}.btn:last-child{margin-bottom:0}
+.btn-primary{background:var(--orange);color:white}.btn-whats{background:#25D366;color:white}
+.btn-outline{background:var(--bg);color:var(--gray-1);border:1.5px solid var(--border)}
+.bio-text{font-size:.92rem;color:var(--gray-2);line-height:1.65}
+.footer{text-align:center;padding:24px;font-size:.75rem;color:var(--gray-3)}
+.footer a{color:var(--orange);text-decoration:none;font-weight:700}
+.quote-form{display:none;margin-top:12px}
+.quote-form input,.quote-form textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;font-family:inherit;outline:none;margin-bottom:10px}
+.quote-form input:focus,.quote-form textarea:focus{border-color:var(--blue)}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,.4);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="loading" style="text-align:center;padding:80px 20px">
+  <div class="spinner" style="width:32px;height:32px;border-color:rgba(27,58,107,.2);border-top-color:#1B3A6B;border-width:3px"></div>
+</div>
+<div id="app" style="display:none"></div>
+<div id="error" style="display:none;text-align:center;padding:80px 20px">
+  <div style="font-size:3rem;margin-bottom:14px">&#128269;</div>
+  <h2>Profissional nao encontrado</h2>
+</div>
+<script>
 const SUPA_URL='https://rauxfeittdarpsaikynp.supabase.co';
 const SUPA_KEY='sb_publishable_NMSSt7zrrdfm7vappE9V5A_RNe4UHbF';
 function fmt(v){return'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
