@@ -124,12 +124,9 @@ const API = {
   // ── Clients ───────────────────────────────────────────────────────────────
   async getClients() {
     const rows = await this._rest('GET',
-      `clients?user_id=eq.${this.userId()}&select=*,quotes(id,total,created_at)&order=created_at.desc`
+      `clients?user_id=eq.${this.userId()}&select=*&order=created_at.desc`
     );
-    return rows.map(c => {
-      const qs = (c.quotes || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      return { ...c, quote_count: qs.length, last_quote: qs[0]?.created_at || null };
-    });
+    return rows.map(c => ({ ...c, quote_count: 0, last_quote: null }));
   },
 
   getClient:    (id)    => API._rest('GET',   `clients?id=eq.${id}&select=*,quotes(id,status,total,created_at)`, { single: true }),
