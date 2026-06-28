@@ -149,7 +149,7 @@ async function saveClient() {
   } catch(e) { toast(e.message, 'error'); }
 }
 
-load();
+load().catch(err=>{console.error(err);if(err.message==='Token inválido')return logout();const el=document.getElementById('list-wrap');if(el)el.innerHTML='<div style="text-align:center;padding:40px"><p style="color:#4B5563;margin-bottom:12px">Erro: '+err.message+'</p><button onclick="location.reload()" class="btn btn-primary">Tentar novamente</button></div>';});
 </script>
 </body>
 </html>
