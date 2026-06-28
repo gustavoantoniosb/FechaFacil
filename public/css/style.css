@@ -477,3 +477,57 @@ input.error, textarea.error { border-color: var(--red); }
     padding-right: calc((100vw - 1100px) / 2);
   }
 }
+
+/* ================================================================
+   Desktop Overrides — @media (min-width: 1024px)
+   ================================================================ */
+@media (min-width: 1024px) {
+
+  /* 1. Auth card: reduz padding (max-width 420px já centraliza) */
+  .auth-card {
+    padding: var(--spacing-6);
+  }
+
+  .auth-logo {
+    margin-bottom: var(--spacing-5);
+  }
+
+  /* 2. Seções: menos padding vertical */
+  .section {
+    padding: var(--spacing-6) 0;
+  }
+
+  /* 3. Inputs em containers largos: evita inputs de 1000px+ */
+  .container input:not([type="checkbox"]):not([type="radio"]),
+  .container textarea,
+  .container select,
+  .container .form-group {
+    max-width: 440px;
+  }
+
+  /* 4. Dentro de auth-card e modal: inputs e botão ocupam 100% */
+  .auth-card input,
+  .auth-card textarea,
+  .auth-card select,
+  .auth-card .form-group,
+  .auth-card .btn-block,
+  .modal input,
+  .modal textarea,
+  .modal select,
+  .modal .form-group,
+  .modal .btn-block {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* 5. Grid: minmax menor — cabe 4 metric cards em 1080px */
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  /* 6. Botões de bloco em containers largos: largura natural */
+  .container .btn-block {
+    width: auto;
+    min-width: 180px;
+  }
+}
