@@ -17,7 +17,7 @@
 </head>
 <body>
 <nav class="top-nav">
-  <button class="nav-back" onclick="window.history.back()">â Voltar</button>
+  <button class="nav-back" onclick="window.history.back()">Ã¢ÂÂ Voltar</button>
   <span class="nav-title">Perfil</span>
   <button class="nav-action" onclick="saveProfile()">Salvar</button>
 </nav>
@@ -52,7 +52,7 @@ function render(){
     <div class="text-center mb-16">
       <div class="profile-avatar">${initials(u.name)}</div>
       <h2>${u.name}</h2>
-      <p class="text-small">${u.profession||''} Â· ${u.city||''}</p>
+      <p class="text-small">${u.profession||''} ÃÂ· ${u.city||''}</p>
       <p class="text-small">${u.email||''}</p>
     </div>
     <div class="card mb-12">
@@ -67,14 +67,14 @@ function render(){
       <div class="form-group"><label>WhatsApp</label><input type="tel" id="p-phone" value="${u.phone||''}"></div>
       <div class="form-group"><label>Bio</label><textarea id="p-bio">${u.bio||''}</textarea></div>
         <div class="form-group">
-          <label>Seu link público (URL)</label>
+          <label>Seu link pÃºblico (URL)</label>
           <div style="display:flex;align-items:center;gap:8px;background:var(--gray-5);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:10px 14px">
             <span style="white-space:nowrap;font-size:.82rem;color:var(--text-2)">fechafacil.onrender.com/minisite.html?slug=</span>
-            <input type="text" id="p-slug" placeholder="meu-nome-123"
+            <input type="text" id="p-slug" value="${u.slug||''}"  placeholder="meu-nome-123"
               style="border:none;background:transparent;padding:0;font-size:.88rem;color:var(--text-1);font-weight:600;width:100%;outline:none"
               oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-')">
           </div>
-          <div class="form-helper">Apenas letras, números e hifens</div>
+          <div class="form-helper">Apenas letras, nÃºmeros e hifens</div>
         </div>
     </div>
     <div class="card mb-12">
@@ -99,7 +99,7 @@ function render(){
   `;}
 function renderServices(){
   if(!services.length)return '<p class="text-small" style="padding:8px 0">Nenhum servico cadastrado.</p>';
-  return services.map(s=>'<div class="svc-item"><button class="toggle '+(s.active?'on':'off')+'" onclick="toggleActive('+s.id+','+(s.active?0:1)+')" title="'+(s.active?'Desativar':'Ativar')+'"></button><div class="svc-info"><div class="svc-name">'+s.name+'</div><div class="svc-price">'+formatMoney(s.price)+'</div></div><button class="svc-del" onclick="deleteService('+s.id+')" title="Remover">ðï¸</button></div>').join('');}
+  return services.map(s=>'<div class="svc-item"><button class="toggle '+(s.active?'on':'off')+'" onclick="toggleActive('+s.id+','+(s.active?0:1)+')" title="'+(s.active?'Desativar':'Ativar')+'"></button><div class="svc-info"><div class="svc-name">'+s.name+'</div><div class="svc-price">'+formatMoney(s.price)+'</div></div><button class="svc-del" onclick="deleteService('+s.id+')" title="Remover">Ã°ÂÂÂÃ¯Â¸Â</button></div>').join('');}
 async function toggleActive(id,val){const svc=services.find(s=>s.id===id);await API.updateService(id,{...svc,active:val});svc.active=val;document.getElementById('svc-list').innerHTML=renderServices();}
 async function deleteService(id){if(!confirm('Remover este servico?'))return;await API.deleteService(id);services=services.filter(s=>s.id!==id);document.getElementById('svc-list').innerHTML=renderServices();toast('Servico removido','success');}
 async function addService(){const name=document.getElementById('svc-name').value.trim();const price=parseFloat(document.getElementById('svc-price').value);const desc=document.getElementById('svc-desc').value.trim();if(!name||isNaN(price))return toast('Nome e preco obrigatorios','error');try{const s=await API.createService({name,price,description:desc});services.push(s);document.getElementById('svc-list').innerHTML=renderServices();['svc-name','svc-price','svc-desc'].forEach(id=>document.getElementById(id).value='');closeSvc();toast('Servico adicionado!','success');}catch(e){toast(e.message,'error');}}
@@ -108,7 +108,7 @@ async function saveProfile(){try{user=await API.updateMe({name:document.getEleme
 function copySlug(){const link=location.origin+'/minisite.html?slug='+user.slug;navigator.clipboard.writeText(link).then(()=>toast('Link copiado!','success')).catch(()=>{const el=document.createElement('input');el.value=link;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove();toast('Link copiado!','success');});}
 function closeSvc(e){if(!e||e.target===document.getElementById('svc-overlay'))document.getElementById('svc-overlay').classList.remove('open');}
 const _t=setTimeout(()=>{const _e=document.getElementById('profile-wrap');if(_e&&_e.querySelector('.spinner'))_e.innerHTML='<div style="text-align:center;padding:40px"><p style="color:#4B5563;margin-bottom:12px">Tempo esgotado.</p><button onclick="location.reload()" class="btn btn-primary">Tentar novamente</button></div>';},8000);
-load().then(()=>clearTimeout(_t)).catch(err=>{clearTimeout(_t);console.error(err);if(err.message==='Token invÃ¡lido')return logout();const _e=document.getElementById('profile-wrap');if(_e)_e.innerHTML='<div style="text-align:center;padding:40px"><p style="color:#4B5563;margin-bottom:12px">Erro: '+err.message+'</p><button onclick="location.reload()" class="btn btn-primary">Tentar novamente</button></div>';});
+load().then(()=>clearTimeout(_t)).catch(err=>{clearTimeout(_t);console.error(err);if(err.message==='Token invÃÂ¡lido')return logout();const _e=document.getElementById('profile-wrap');if(_e)_e.innerHTML='<div style="text-align:center;padding:40px"><p style="color:#4B5563;margin-bottom:12px">Erro: '+err.message+'</p><button onclick="location.reload()" class="btn btn-primary">Tentar novamente</button></div>';});
 </script>
 </body>
 </html>
