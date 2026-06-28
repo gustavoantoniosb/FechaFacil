@@ -40,7 +40,7 @@
   </div>
 </div>
 <div id="toast"></div>
-<script src="/js/api.js"><\/script>
+<script src="/js/api.js"></script>
 <script>
 if(!requireAuth())throw 0;
 let user=null,services=[];
@@ -97,6 +97,6 @@ async function saveProfile(){try{user=await API.updateMe({name:document.getEleme
 function copySlug(){const link=location.origin+'/minisite.html?slug='+user.slug;navigator.clipboard.writeText(link).then(()=>toast('Link copiado!','success')).catch(()=>{const el=document.createElement('input');el.value=link;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove();toast('Link copiado!','success');});}
 function closeSvc(e){if(!e||e.target===document.getElementById('svc-overlay'))document.getElementById('svc-overlay').classList.remove('open');}
 load().catch(err=>{console.error(err);if(err.message==='Token inválido')return logout();const el=document.getElementById('content');if(el)el.innerHTML='<div style="text-align:center;padding:40px"><p style="color:#4B5563;margin-bottom:12px">Erro: '+err.message+'</p><button onclick="location.reconst _t=setTimeout(()=>{const _e=document.getElementById('profile-wrap');if(_e&&_e.querySelector('.spinner'))_e.innerHTML='<div style="text-align:center;padding:40px"><p style="color:#4B5563;margin-bottom:12px">Tempo esgotado.</p><button onclick="location.reload()" class="btn btn-primary">Tentar novamente<\/button><\/div>';},8000);load().then(()=>clearTimeout(_t)).catch(err=>{clearTimeout(_t);console.error(err);if(err.message==='Token inv\u00e1lido')return logout();const _e=document.getElementById('profile-wrap');if(_e)_e.innerHTML='<div style="text-align:center;padding:40px"><p style="color:#4B5563;margin-bottom:12px">Erro: '+err.message+'<\/p><button onclick="location.reload()" class="btn btn-primary">Tentar novamente<\/button><\/div>';});
-<\/script>
+</script>
 </body>
 </html>
