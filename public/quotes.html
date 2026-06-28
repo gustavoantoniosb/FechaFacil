@@ -50,7 +50,7 @@ async function load(){all=await API.getQuotes();render();const idParam=params.ge
 function render(){
   const filtered=current==='all'||!current?all:all.filter(q=>q.status===current);
   document.querySelectorAll('.filter-tab').forEach(t=>t.classList.toggle('active',t.dataset.f===(current||'all')));
-  if(filtered.length===0){document.getElementById('list-wrap').innerHTML='<div class="empty"><div class="icon">&#128203;</div><p>Nenhum orcamento encontrado.</p><button class="btn btn-primary" onclick="window.location.href=\'\'/quote-new.html\'\'''>Criar orcamento</button></div>';return;}
+  if(filtered.length===0){document.getElementById('list-wrap').innerHTML='<div class="empty"><div class="icon">&#128203;</div><p>Nenhum orcamento encontrado.</p><button class="btn btn-primary" onclick="window.location.href=\'/quote-new.html\'">Criar orcamento</button></div>';return;}
   document.getElementById('list-wrap').innerHTML='<div class="card card-list">'+filtered.map(q=>'<div class="list-item" onclick="showDetail('+q.id+')"><div class="list-item-avatar">'+initials(q.client_name)+'</div><div class="list-item-body"><div class="list-item-name">'+q.client_name+'</div><div class="list-item-sub"><span class="badge badge-'+q.status+'">'+statusLabel(q.status)+'</span> · '+timeAgo(q.created_at)+'</div></div><div class="list-item-right"><div class="list-item-value">'+formatMoney(q.total)+'</div></div></div>').join('')+'</div>';
 }
 document.querySelectorAll('.filter-tab').forEach(t=>t.addEventListener('click',()=>{current=t.dataset.f==='all'?'':t.dataset.f;render();}));
