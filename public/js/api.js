@@ -106,11 +106,24 @@ const API = {
   },
 
   async updateMe(data) {
-    const profile = await this._rest('PATCH', `profiles?id=eq.${this.userId()}`, {
-      body: data, single: true
+    // Upsert: cria o perfil se não existir, atualiza se existir
+    const body = { ...data, id: this.userId() };
+    const h = this._h({ 'Prefer': 'resolution=merge-duplicates,return=representation', 'Accept': 'application/vnd.pgrst.object+json' });
+    const res = await fetch(`${SUPA_URL}/rest/v1/profiles`, {
+      method: 'POST', headers: h, body: JSON.stringify(body)
     });
+    if (!res.ok) {
+      const d = await res.json();
+      const raw = d.message || d.hint || d.details || d.error || 'Erro';
+      if (raw.includes('JWT expired') || raw.includes('invalid claim')) {
+        ['ff_token','ff_uid','ff_user'].forEach(k => localStorage.removeItem(k));
+        window.location.href = '/index.html'; return;
+      }
+      throw new Error(_traduzErro(raw));
+    }
+    const profile = await res.json();
     const cached = JSON.parse(localStorage.getItem('ff_user') || '{}');
-    const user = { ...profile, email: cached.email };
+    const user = { ...profile, email: cached.email || '' };
     localStorage.setItem('ff_user', JSON.stringify(user));
     return user;
   },
