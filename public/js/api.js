@@ -254,7 +254,7 @@ function statusLabel(s) {
 }
 
 function requireAuth() {
-  if (!API.token()) { window.location.href = '/index.html'; return false; }
+  if (!API.token() || !API.userId()) { window.location.href = '/index.html'; return false; }
   return true;
 }
 
