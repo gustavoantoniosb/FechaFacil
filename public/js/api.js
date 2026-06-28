@@ -45,6 +45,7 @@ const API = {
     });
     if (res.status === 204 || method === 'DELETE') return null;
     const data = await res.json();
+    if (res.status === 406 && data?.code === 'PGRST116') return null;
     if (!res.ok) {
       const raw = data.message || data.hint || data.details || data.error || 'Erro';
       if (raw.includes('JWT expired') || raw.includes('invalid claim')) {
@@ -100,6 +101,7 @@ const API = {
   async me() {
     const cached = JSON.parse(localStorage.getItem('ff_user') || '{}');
     const profile = await this._rest('GET', `profiles?id=eq.${this.userId()}`, { single: true });
+    if (!profile) return { name: cached.name || 'Usuário', ...cached };
     return { ...profile, email: cached.email || '' };
   },
 
