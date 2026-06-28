@@ -1,104 +1,377 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>FechaFacil - Novo Orcamento</title>
-<link rel="stylesheet" href="/css/style.css">
-<style>
-  .item-row{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
-  .item-row:last-child{border-bottom:none}
-  .item-desc{flex:2}.item-qty{flex:0 0 60px}.item-price{flex:1}
-  .item-total{flex:1;text-align:right;font-weight:700;color:var(--blue);font-size:.88rem;padding-top:30px}
-  .item-del{flex:0 0 32px;padding-top:26px}
-  .item-del button{background:none;border:none;color:var(--red);cursor:pointer;font-size:1.1rem}
-  .item-row input{width:100%}
-  .total-box{background:var(--blue);color:white;border-radius:12px;padding:16px 20px;text-align:center;margin:16px 0}
-  .total-box .t-label{font-size:.82rem;opacity:.75;margin-bottom:4px}
-  .total-box .t-value{font-size:1.8rem;font-weight:900}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>FechaFácil — Novo Orçamento</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .items-table { width: 100%; border-collapse: collapse; }
+    .items-table th {
+      text-align: left; font-size: .75rem; font-weight: 700;
+      color: var(--text-3); text-transform: uppercase; letter-spacing: .4px;
+      padding: 6px 8px; border-bottom: 2px solid var(--border);
+    }
+    .items-table td {
+      padding: 10px 8px; border-bottom: 1px solid var(--border);
+      font-size: .9rem; vertical-align: middle;
+    }
+    .items-table .col-desc { width: auto; }
+    .items-table .col-qty  { width: 50px; text-align: center; }
+    .items-table .col-val  { width: 100px; text-align: right; }
+    .items-table .col-tot  { width: 110px; text-align: right; font-weight: 700; color: var(--blue); }
+    .items-table .col-act  { width: 36px; text-align: center; }
+    .item-del-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); font-size: 1rem; padding: 4px;
+      border-radius: var(--radius-sm); transition: var(--transition);
+    }
+    .item-del-btn:hover { color: var(--red); background: #FEE2E2; }
+    .total-bar {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+      color: #fff; border-radius: var(--radius-md);
+      padding: 14px 16px; display: flex; justify-content: space-between;
+      align-items: center; margin-top: 12px;
+    }
+    .total-bar .lbl { font-size: .8rem; opacity: .75; font-weight: 600; }
+    .total-bar .val { font-size: 1.5rem; font-weight: 900; }
+    @media (min-width: 1024px) {
+      .qn-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 24px;
+        align-items: start;
+      }
+      .qn-col-left  { display: flex; flex-direction: column; gap: 20px; }
+      .qn-col-right { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 130px; }
+    }
+    @media (max-width: 1023px) {
+      .qn-col-left, .qn-col-right { display: flex; flex-direction: column; gap: 16px; }
+      .qn-col-right { margin-top: 16px; }
+    }
+    .btn-criar {
+      width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 800;
+      background: var(--orange); color: #fff; border: none;
+      border-radius: var(--radius-md); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: var(--transition); font-family: var(--font);
+    }
+    .btn-criar:hover:not(:disabled) { background: var(--orange-dark); transform: translateY(-1px); }
+    .btn-criar:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .item-form-row {
+      display: grid; grid-template-columns: 1fr 80px; gap: 12px;
+    }
+    @media (min-width: 480px) {
+      .item-form-row { grid-template-columns: 1fr 90px 130px; }
+    }
+    .card .form-group,
+    .card input,
+    .card textarea,
+    .card select { max-width: 100% !important; }
+  </style>
 </head>
 <body>
-<nav class="top-nav">
-  <button class="nav-back" onclick="window.history.back()">← Voltar</button>
-  <span class="nav-title">Novo Orcamento</span>
-  <button class="nav-action" onclick="submit()">Criar</button>
+
+<div class="top-nav">
+  <button class="nav-back" onclick="window.location.href='/quotes.html'">&#8592; Voltar</button>
+  <span class="nav-title">Novo Orçamento</span>
+  <div style="width:80px"></div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="/index-app.html"><span class="icon">&#127968;</span><span>Início</span></a>
+  <a href="/clients.html"><span class="icon">&#128101;</span><span>Clientes</span></a>
+  <a href="/quotes.html" class="active"><span class="icon">&#128203;</span><span>Orçamentos</span></a>
+  <a href="/profile.html"><span class="icon">&#128100;</span><span>Perfil</span></a>
 </nav>
+
 <div class="content">
-  <div class="card mb-12">
-    <h3 style="margin-bottom:14px">Cliente</h3>
-    <div class="form-group"><label>Nome completo *</label><input type="text" id="c-name" placeholder="Joao Silva"></div>
-    <div class="form-group"><label>WhatsApp *</label><input type="tel" id="c-phone" placeholder="(11) 99999-9999"></div>
-    <div class="form-group"><label>E-mail</label><input type="email" id="c-email" placeholder="joao@email.com"></div>
-  </div>
-  <div class="card mb-12">
-    <div class="flex items-center justify-between mb-12">
-      <h3>Itens do orcamento</h3>
-      <button class="btn btn-primary btn-sm" onclick="addItem()">+ Adicionar</button>
+  <div class="qn-grid">
+
+    <div class="qn-col-left">
+
+      <div class="card">
+        <h3 style="margin-bottom:16px">&#128100; Cliente</h3>
+        <div class="form-group">
+          <label>Nome do cliente *</label>
+          <input type="text" id="client-name" placeholder="Ex: João Silva" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label>WhatsApp</label>
+          <input type="tel" id="client-phone" placeholder="(11) 99999-9999" autocomplete="tel">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>E-mail</label>
+          <input type="email" id="client-email" placeholder="email@exemplo.com" autocomplete="email">
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="margin:0">&#128230; Itens</h3>
+          <button class="btn btn-primary btn-sm" onclick="openItem()">+ Adicionar</button>
+        </div>
+
+        <div id="items-wrap">
+          <p id="items-empty" style="color:var(--text-3);font-size:.88rem;padding:8px 0 4px">
+            Nenhum item adicionado. Clique em &quot;+ Adicionar&quot;.
+          </p>
+          <table class="items-table" id="items-table" style="display:none">
+            <thead>
+              <tr>
+                <th class="col-desc">Descrição</th>
+                <th class="col-qty">Qtd</th>
+                <th class="col-val">Valor unit.</th>
+                <th class="col-tot">Total</th>
+                <th class="col-act"></th>
+              </tr>
+            </thead>
+            <tbody id="items-body"></tbody>
+          </table>
+        </div>
+
+        <div class="total-bar">
+          <div>
+            <div class="lbl">Subtotal</div>
+            <div class="val" id="subtotal-display">R$ 0,00</div>
+          </div>
+          <div style="text-align:right">
+            <div class="lbl">Total com desconto</div>
+            <div class="val" id="total-display">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+
     </div>
-    <div id="items-wrap"></div>
-    <div class="total-box"><div class="t-label">Total do orcamento</div><div class="t-value" id="total-display">R$ 0,00</div></div>
-  </div>
-  <div class="card mb-12">
-    <h3 style="margin-bottom:14px">Detalhes</h3>
-    <div class="form-group"><label>Desconto (R$)</label><input type="number" id="discount" placeholder="0.00" min="0" step="0.01" oninput="calcTotal()"></div>
-    <div class="form-group"><label>Validade do orcamento</label><input type="date" id="valid-until"></div>
-    <div class="form-group"><label>Observacoes</label><textarea id="notes" placeholder="Condicoes, prazo de execucao, materiais inclusos..."></textarea></div>
+
+    <div class="qn-col-right">
+
+      <div class="card">
+        <h3 style="margin-bottom:16px">&#128221; Detalhes</h3>
+        <div class="form-group">
+          <label>Desconto (R$)</label>
+          <input type="number" id="discount" placeholder="0,00" min="0" step="0.01"
+            oninput="calcTotal()" value="0">
+        </div>
+        <div class="form-group">
+          <label>Validade do orçamento</label>
+          <input type="date" id="valid-until">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Observações</label>
+          <textarea id="notes" rows="3"
+            placeholder="Condições de pagamento, prazo de execução, materiais inclusos..."></textarea>
+        </div>
+      </div>
+
+      <button class="btn-criar" id="btn-criar" onclick="criar()">
+        <span>&#9989; Criar Orçamento e Enviar pelo WhatsApp</span>
+      </button>
+
+    </div>
+
   </div>
 </div>
+
+<div class="overlay" id="item-overlay" onclick="overlayClick(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <h2 id="item-modal-title" style="margin-bottom:16px">Adicionar item</h2>
+
+    <div class="form-group">
+      <label>Descrição *</label>
+      <input type="text" id="item-desc"
+        placeholder="Ex: Instalação de tomadas, Mão de obra, etc.">
+    </div>
+
+    <div class="item-form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Valor unitário (R$) *</label>
+        <input type="number" id="item-price" placeholder="0,00" min="0" step="0.01">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Quantidade</label>
+        <input type="number" id="item-qty" value="1" min="1" step="1">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-secondary btn-sm" style="flex:1" onclick="closeItem()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="confirmItem()">Adicionar item</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
-<script src="/js/api.js"><\/script>
+
+<script src="/js/api.js"></script>
 <script>
-if(!requireAuth())throw 0;
-let items=[],nextId=0;
-const prefill=JSON.parse(sessionStorage.getItem('ff_client')||'null');
-if(prefill){document.getElementById('c-name').value=prefill.name||'';document.getElementById('c-phone').value=prefill.phone||'';sessionStorage.removeItem('ff_client');}
-const dv=new Date();dv.setDate(dv.getDate()+30);document.getElementById('valid-until').value=dv.toISOString().slice(0,10);
-addItem();
-function addItem(){
-  const id=nextId++;items.push(id);
-  const wrap=document.getElementById('items-wrap');
-  const div=document.createElement('div');div.className='item-row';div.id='item-'+id;
-  div.innerHTML='<div class="item-desc"><label style="font-size:.75rem;color:var(--text-2);font-weight:600">Descricao *</label><input type="text" id="id-desc-'+id+'" placeholder="Ex: Instalacao eletrica" oninput="calcTotal()"></div><div class="item-qty"><label style="font-size:.75rem;color:var(--text-2);font-weight:600">Qtd</label><input type="number" id="id-qty-'+id+'" value="1" min="1" step="1" oninput="calcTotal()"></div><div class="item-price"><label style="font-size:.75rem;color:var(--text-2);font-weight:600">Preco *</label><input type="number" id="id-price-'+id+'" placeholder="0.00" min="0" step="0.01" oninput="calcTotal()"></div><div class="item-total" id="id-total-'+id+'">—</div><div class="item-del"><button onclick="removeItem('+id+')" title="Remover">&#128465;&#65039;</button></div>';
-  wrap.appendChild(div);calcTotal();
-}
-function removeItem(id){
-  if(items.length<=1){toast('Pelo menos um item obrigatorio','error');return;}
-  items=items.filter(i=>i!==id);document.getElementById('item-'+id).remove();calcTotal();
-}
-function calcTotal(){
-  let subtotal=0;
-  for(const id of items){
-    const qty=parseFloat(document.getElementById('id-qty-'+id)?.value)||0;
-    const price=parseFloat(document.getElementById('id-price-'+id)?.value)||0;
-    const t=qty*price;
-    const el=document.getElementById('id-total-'+id);
-    if(el)el.textContent=t>0?formatMoney(t):'—';
-    subtotal+=t;
+if (!requireAuth()) throw 0;
+
+let items = [];
+let editIdx = -1;
+
+(function init() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  document.getElementById('valid-until').value = d.toISOString().split('T')[0];
+})();
+
+function openItem(idx) {
+  editIdx = (idx !== undefined) ? idx : -1;
+  const title = document.getElementById('item-modal-title');
+  if (editIdx >= 0) {
+    const it = items[editIdx];
+    document.getElementById('item-desc').value  = it.description;
+    document.getElementById('item-price').value = it.unit_price;
+    document.getElementById('item-qty').value   = it.quantity;
+    title.textContent = 'Editar item';
+    document.querySelector('#item-overlay .btn-primary').textContent = 'Salvar alterações';
+  } else {
+    document.getElementById('item-desc').value  = '';
+    document.getElementById('item-price').value = '';
+    document.getElementById('item-qty').value   = '1';
+    title.textContent = 'Adicionar item';
+    document.querySelector('#item-overlay .btn-primary').textContent = 'Adicionar item';
   }
-  const discount=parseFloat(document.getElementById('discount').value)||0;
-  document.getElementById('total-display').textContent=formatMoney(Math.max(0,subtotal-discount));
+  document.getElementById('item-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('item-desc').focus(), 250);
 }
-async function submit(){
-  const client_name=document.getElementById('c-name').value.trim();
-  const client_phone=document.getElementById('c-phone').value.trim();
-  const client_email=document.getElementById('c-email').value.trim();
-  if(!client_name||!client_phone)return toast('Nome e WhatsApp do cliente sao obrigatorios','error');
-  const quoteItems=[];
-  for(const id of items){
-    const description=document.getElementById('id-desc-'+id)?.value.trim();
-    const quantity=parseFloat(document.getElementById('id-qty-'+id)?.value)||1;
-    const unit_price=parseFloat(document.getElementById('id-price-'+id)?.value);
-    if(!description||isNaN(unit_price)||unit_price<0)return toast('Preencha descricao e preco de todos os itens','error');
-    quoteItems.push({description,quantity,unit_price});
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('item-overlay')) closeItem();
+}
+
+function closeItem() {
+  document.getElementById('item-overlay').classList.remove('open');
+}
+
+function confirmItem() {
+  const desc  = document.getElementById('item-desc').value.trim();
+  const price = parseFloat(document.getElementById('item-price').value) || 0;
+  const qty   = parseInt(document.getElementById('item-qty').value)    || 1;
+
+  if (!desc)  { toast('Informe a descrição do item', 'error'); return; }
+  if (!price) { toast('Informe o valor do item', 'error'); return; }
+
+  const item = { description: desc, unit_price: price, quantity: qty, total: price * qty };
+
+  if (editIdx >= 0) items[editIdx] = item;
+  else items.push(item);
+
+  closeItem();
+  renderItems();
+  calcTotal();
+}
+
+function removeItem(idx) {
+  items.splice(idx, 1);
+  renderItems();
+  calcTotal();
+}
+
+function renderItems() {
+  const empty = document.getElementById('items-empty');
+  const table = document.getElementById('items-table');
+  const tbody = document.getElementById('items-body');
+
+  if (!items.length) {
+    empty.style.display = '';
+    table.style.display = 'none';
+    return;
   }
-  const btn=document.querySelector('.nav-action');btn.disabled=true;btn.textContent='...';
-  try{
-    await API.createQuote({client_name,client_phone,client_email,items:quoteItems,notes:document.getElementById('notes').value,valid_until:document.getElementById('valid-until').value||null,discount:parseFloat(document.getElementById('discount').value)||0});
-    toast('Orcamento criado!','success');
-    setTimeout(()=>window.location.href='/quotes.html',800);
-  }catch(e){toast(e.message,'error');btn.disabled=false;btn.textContent='Criar';}
+
+  empty.style.display = 'none';
+  table.style.display = '';
+
+  tbody.innerHTML = items.map(function(it, i) {
+    return '<tr>' +
+      '<td class="col-desc" style="cursor:pointer" onclick="openItem(' + i + ')">' +
+      '<span style="font-weight:600;color:var(--text-1)">' + esc(it.description) + '</span></td>' +
+      '<td class="col-qty" style="text-align:center;color:var(--text-2)">' + it.quantity + '</td>' +
+      '<td class="col-val">' + formatMoney(it.unit_price) + '</td>' +
+      '<td class="col-tot">' + formatMoney(it.total) + '</td>' +
+      '<td class="col-act"><button class="item-del-btn" onclick="removeItem(' + i + ')" title="Remover">&#128465;</button></td>' +
+      '</tr>';
+  }).join('');
 }
-<\/script>
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function calcTotal() {
+  const subtotal = items.reduce(function(s, it) { return s + it.total; }, 0);
+  const discount = parseFloat(document.getElementById('discount').value) || 0;
+  const total    = Math.max(0, subtotal - discount);
+
+  document.getElementById('subtotal-display').textContent = formatMoney(subtotal);
+  document.getElementById('total-display').textContent    = formatMoney(total);
+}
+
+async function criar() {
+  const clientName  = document.getElementById('client-name').value.trim();
+  const clientPhone = document.getElementById('client-phone').value.trim();
+  const clientEmail = document.getElementById('client-email').value.trim();
+  const discount    = parseFloat(document.getElementById('discount').value) || 0;
+  const validUntil  = document.getElementById('valid-until').value || null;
+  const notes       = document.getElementById('notes').value.trim();
+
+  if (!clientName) { toast('Informe o nome do cliente', 'error'); return; }
+  if (!items.length) { toast('Adicione pelo menos 1 item', 'error'); return; }
+
+  const btn = document.getElementById('btn-criar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Criando orçamento...';
+
+  try {
+    const quote = await API.createQuote({
+      client_name:  clientName,
+      client_phone: clientPhone,
+      client_email: clientEmail,
+      items,
+      notes,
+      valid_until: validUntil,
+      discount
+    });
+
+    toast('Orçamento criado com sucesso!', 'success');
+
+    const token = quote.token || quote.id;
+    const link  = window.location.origin + '/quote-view.html?token=' + token;
+    const phone = clientPhone.replace(/\D/g, '');
+    const subtotal = items.reduce(function(s, i) { return s + i.total; }, 0);
+    const total = Math.max(0, subtotal - discount);
+    const linhaItens = items.map(function(i) {
+      return '\u25b8 ' + i.description + ' x' + i.quantity + ' = ' + formatMoney(i.total);
+    }).join('\n');
+
+    const msg = 'Olá ' + clientName + '!\n\n' +
+      'Segue o seu orçamento:\n\n' +
+      linhaItens + '\n' +
+      (discount > 0 ? 'Desconto: ' + formatMoney(discount) + '\n' : '') +
+      'Total: ' + formatMoney(total) + '\n\n' +
+      'Acesse o orçamento completo:\n' + link + '\n\n' +
+      'Qualquer dúvida, pode perguntar!';
+
+    setTimeout(function() {
+      if (phone) {
+        window.open('https://wa.me/55' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+      }
+      window.location.href = '/quotes.html';
+    }, 900);
+
+  } catch (e) {
+    toast(e.message || 'Erro ao criar orçamento', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span>&#9989; Criar Orçamento e Enviar pelo WhatsApp</span>';
+  }
+}
+
+renderItems();
+calcTotal();
+</script>
 </body>
 </html>
