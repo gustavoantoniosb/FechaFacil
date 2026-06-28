@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>FechaFácil — Novo Orçamento</title>
+  <title>FechaFÃ¡cil â Novo OrÃ§amento</title>
   <link rel="stylesheet" href="/css/style.css">
   <style>
     .items-table { width: 100%; border-collapse: collapse; }
@@ -74,14 +74,14 @@
 
 <div class="top-nav">
   <button class="nav-back" onclick="window.location.href='/quotes.html'">&#8592; Voltar</button>
-  <span class="nav-title">Novo Orçamento</span>
+  <span class="nav-title">Novo OrÃ§amento</span>
   <div style="width:80px"></div>
 </div>
 
 <nav class="bottom-nav">
-  <a href="/index-app.html"><span class="icon">&#127968;</span><span>Início</span></a>
+  <a href="/index-app.html"><span class="icon">&#127968;</span><span>InÃ­cio</span></a>
   <a href="/clients.html"><span class="icon">&#128101;</span><span>Clientes</span></a>
-  <a href="/quotes.html" class="active"><span class="icon">&#128203;</span><span>Orçamentos</span></a>
+  <a href="/quotes.html" class="active"><span class="icon">&#128203;</span><span>OrÃ§amentos</span></a>
   <a href="/profile.html"><span class="icon">&#128100;</span><span>Perfil</span></a>
 </nav>
 
@@ -94,7 +94,7 @@
         <h3 style="margin-bottom:16px">&#128100; Cliente</h3>
         <div class="form-group">
           <label>Nome do cliente *</label>
-          <input type="text" id="client-name" placeholder="Ex: João Silva" autocomplete="name">
+          <input type="text" id="client-name" placeholder="Ex: JoÃ£o Silva" autocomplete="name">
         </div>
         <div class="form-group">
           <label>WhatsApp</label>
@@ -119,7 +119,7 @@
           <table class="items-table" id="items-table" style="display:none">
             <thead>
               <tr>
-                <th class="col-desc">Descrição</th>
+                <th class="col-desc">DescriÃ§Ã£o</th>
                 <th class="col-qty">Qtd</th>
                 <th class="col-val">Valor unit.</th>
                 <th class="col-tot">Total</th>
@@ -154,18 +154,18 @@
             oninput="calcTotal()" value="0">
         </div>
         <div class="form-group">
-          <label>Validade do orçamento</label>
+          <label>Validade do orÃ§amento</label>
           <input type="date" id="valid-until">
         </div>
         <div class="form-group" style="margin-bottom:0">
-          <label>Observações</label>
+          <label>ObservaÃ§Ãµes</label>
           <textarea id="notes" rows="3"
-            placeholder="Condições de pagamento, prazo de execução, materiais inclusos..."></textarea>
+            placeholder="CondiÃ§Ãµes de pagamento, prazo de execuÃ§Ã£o, materiais inclusos..."></textarea>
         </div>
       </div>
 
       <button class="btn-criar" id="btn-criar" onclick="criar()">
-        <span>&#9989; Criar Orçamento e Enviar pelo WhatsApp</span>
+        <span>&#9989; Criar OrÃ§amento e Enviar pelo WhatsApp</span>
       </button>
 
     </div>
@@ -179,14 +179,14 @@
     <h2 id="item-modal-title" style="margin-bottom:16px">Adicionar item</h2>
 
     <div class="form-group">
-      <label>Descrição *</label>
+      <label>DescriÃ§Ã£o *</label>
       <input type="text" id="item-desc"
-        placeholder="Ex: Instalação de tomadas, Mão de obra, etc.">
+        placeholder="Ex: InstalaÃ§Ã£o de tomadas, MÃ£o de obra, etc.">
     </div>
 
     <div class="item-form-row">
       <div class="form-group" style="margin-bottom:0">
-        <label>Valor unitário (R$) *</label>
+        <label>Valor unitÃ¡rio (R$) *</label>
         <input type="number" id="item-price" placeholder="0,00" min="0" step="0.01">
       </div>
       <div class="form-group" style="margin-bottom:0">
@@ -226,7 +226,7 @@ function openItem(idx) {
     document.getElementById('item-price').value = it.unit_price;
     document.getElementById('item-qty').value   = it.quantity;
     title.textContent = 'Editar item';
-    document.querySelector('#item-overlay .btn-primary').textContent = 'Salvar alterações';
+    document.querySelector('#item-overlay .btn-primary').textContent = 'Salvar alteraÃ§Ãµes';
   } else {
     document.getElementById('item-desc').value  = '';
     document.getElementById('item-price').value = '';
@@ -251,7 +251,7 @@ function confirmItem() {
   const price = parseFloat(document.getElementById('item-price').value) || 0;
   const qty   = parseInt(document.getElementById('item-qty').value)    || 1;
 
-  if (!desc)  { toast('Informe a descrição do item', 'error'); return; }
+  if (!desc)  { toast('Informe a descriÃ§Ã£o do item', 'error'); return; }
   if (!price) { toast('Informe o valor do item', 'error'); return; }
 
   const item = { description: desc, unit_price: price, quantity: qty, total: price * qty };
@@ -324,7 +324,7 @@ async function criar() {
 
   const btn = document.getElementById('btn-criar');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Criando orçamento...';
+  btn.innerHTML = '<span class="spinner"></span> Criando orÃ§amento...';
 
   try {
     const quote = await API.createQuote({
@@ -337,10 +337,10 @@ async function criar() {
       discount
     });
 
-    toast('Orçamento criado com sucesso!', 'success');
+    toast('OrÃ§amento criado com sucesso!', 'success');
 
     const token = quote.token || quote.id;
-    const link  = window.location.origin + '/quote-view.html?token=' + token;
+    const link  = window.location.origin + '/quote-public.html?token=' + token;
     const phone = clientPhone.replace(/\D/g, '');
     const subtotal = items.reduce(function(s, i) { return s + i.total; }, 0);
     const total = Math.max(0, subtotal - discount);
@@ -348,13 +348,13 @@ async function criar() {
       return '\u25b8 ' + i.description + ' x' + i.quantity + ' = ' + formatMoney(i.total);
     }).join('\n');
 
-    const msg = 'Olá ' + clientName + '!\n\n' +
-      'Segue o seu orçamento:\n\n' +
+    const msg = 'OlÃ¡ ' + clientName + '!\n\n' +
+      'Segue o seu orÃ§amento:\n\n' +
       linhaItens + '\n' +
       (discount > 0 ? 'Desconto: ' + formatMoney(discount) + '\n' : '') +
       'Total: ' + formatMoney(total) + '\n\n' +
-      'Acesse o orçamento completo:\n' + link + '\n\n' +
-      'Qualquer dúvida, pode perguntar!';
+      'Acesse o orÃ§amento completo:\n' + link + '\n\n' +
+      'Qualquer dÃºvida, pode perguntar!';
 
     setTimeout(function() {
       if (phone) {
@@ -364,9 +364,9 @@ async function criar() {
     }, 900);
 
   } catch (e) {
-    toast(e.message || 'Erro ao criar orçamento', 'error');
+    toast(e.message || 'Erro ao criar orÃ§amento', 'error');
     btn.disabled = false;
-    btn.innerHTML = '<span>&#9989; Criar Orçamento e Enviar pelo WhatsApp</span>';
+    btn.innerHTML = '<span>&#9989; Criar OrÃ§amento e Enviar pelo WhatsApp</span>';
   }
 }
 
